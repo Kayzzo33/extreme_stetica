@@ -17,10 +17,10 @@ export const SERVICES: Service[] = [
 ];
 
 export const PRODUCTS: Product[] = [
-  { id: 'p1', name: 'Vönix Ceramic Pro', description: 'Vitrificador de alta performance para proteção de longo prazo.', image: 'https://picsum.photos/seed/vonix1/400/300', isProfessional: true },
-  { id: 'p2', name: 'Vönix Shampoo pH Neutro', description: 'Limpeza segura que não agride vitrificações ou ceras.', image: 'https://picsum.photos/seed/vonix2/400/300', isProfessional: true },
-  { id: 'p3', name: 'Vönix Cera Carnaúba Premium', description: 'Brilho quente e profundo com proteção natural.', image: 'https://picsum.photos/seed/vonix3/400/300', isProfessional: false },
-  { id: 'p4', name: 'Vönix Compounds', description: 'Linha completa de corte, refino e lustro técnico.', image: 'https://picsum.photos/seed/vonix4/400/300', isProfessional: true },
+  { id: 'p1', name: 'Vönix Ceramic Pro', description: 'Vitrificador de alta performance para proteção de longo prazo.', image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=600', isProfessional: true },
+  { id: 'p2', name: 'Vönix V-Floc', description: 'Shampoo de alta performance com lubrificação premium para lavagem segura.', image: 'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&q=80&w=600', isProfessional: true },
+  { id: 'p3', name: 'Vönix Cera Carnaúba Premium', description: 'Brilho quente e profundo com a lendária proteção da carnaúba brasileira.', image: 'https://images.unsplash.com/photo-1599256621730-535171e28e50?auto=format&fit=crop&q=80&w=600', isProfessional: false },
+  { id: 'p4', name: 'Vönix V-Polish', description: 'Compostos polidores de corte, refino e lustro para acabamento espelhado.', image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=600', isProfessional: true },
 ];
 
 export const WORKING_HOURS = {
