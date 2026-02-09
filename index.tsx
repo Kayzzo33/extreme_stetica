@@ -9,8 +9,14 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+
+try {
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+} catch (error) {
+  console.error("Erro fatal na renderização:", error);
+  rootElement.innerHTML = '<div style="color: white; padding: 20px; text-align: center;"><h1>Erro ao carregar o site.</h1><p>Por favor, recarregue a página.</p></div>';
+}

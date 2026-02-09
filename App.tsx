@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { 
@@ -6,7 +5,7 @@ import {
   Droplets, Zap, ShieldCheck, Gem, Sun, Layers, Star, UserCheck, 
   Cpu, X, ChevronRight, CheckCircle, AlertCircle, Info, Play
 } from 'lucide-react';
-import { format, isSaturday, startOfToday, parseISO } from 'date-fns';
+import { format, isSaturday, parseISO } from 'date-fns';
 import { doc, getDoc, updateDoc, increment, setDoc } from "firebase/firestore";
 import { db } from './firebaseConfig';
 import { SERVICES, PRODUCTS as DEFAULT_PRODUCTS, WORKING_HOURS, CONTACT_INFO, REELS as DEFAULT_REELS } from './constants';
@@ -39,7 +38,14 @@ const Toast = ({ message, type = 'success', onClose }: { message: string, type?:
   );
 };
 
-const ReelCard = ({ url, index, playingIndex, setPlayingIndex }: { url: string, index: number, playingIndex: number | null, setPlayingIndex: (i: number | null) => void }) => {
+interface ReelCardProps {
+  url: string;
+  index: number;
+  playingIndex: number | null;
+  setPlayingIndex: React.Dispatch<React.SetStateAction<number | null>>;
+}
+
+const ReelCard: React.FC<ReelCardProps> = ({ url, index, playingIndex, setPlayingIndex }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isPlaying = playingIndex === index;
 
@@ -104,7 +110,7 @@ function MainLanding() {
   const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
 
   // Booking Form State
-  const [formDate, setFormDate] = useState(format(startOfToday(), 'yyyy-MM-dd'));
+  const [formDate, setFormDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [formTime, setFormTime] = useState('');
   const [formName, setFormName] = useState('');
   const [formPhone, setFormPhone] = useState('');
@@ -193,7 +199,7 @@ function MainLanding() {
   };
 
   const resetForm = () => {
-    setFormDate(format(startOfToday(), 'yyyy-MM-dd'));
+    setFormDate(format(new Date(), 'yyyy-MM-dd'));
     setFormTime('');
     setFormName('');
     setFormPhone('');
@@ -537,7 +543,7 @@ function MainLanding() {
                   <label className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 ml-1 italic">Data Desejada</label>
                   <input 
                     type="date" 
-                    min={format(startOfToday(), 'yyyy-MM-dd')}
+                    min={format(new Date(), 'yyyy-MM-dd')}
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
                     className="w-full bg-dark/50 border border-white/5 p-5 rounded-2xl focus:ring-2 focus:ring-accent transition-all font-bold text-white outline-none shadow-inner"
