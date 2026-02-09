@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { 
@@ -5,7 +6,7 @@ import {
   Droplets, Zap, ShieldCheck, Gem, Sun, Layers, Star, UserCheck, 
   Cpu, X, ChevronRight, CheckCircle, AlertCircle, Info, Play
 } from 'lucide-react';
-import { format, isSaturday, parseISO } from 'date-fns';
+import { format, isSaturday } from 'date-fns';
 import { doc, getDoc, updateDoc, increment, setDoc } from "firebase/firestore";
 import { db } from './firebaseConfig';
 import { SERVICES, PRODUCTS as DEFAULT_PRODUCTS, WORKING_HOURS, CONTACT_INFO, REELS as DEFAULT_REELS } from './constants';
@@ -97,6 +98,13 @@ const ReelCard: React.FC<ReelCardProps> = ({ url, index, playingIndex, setPlayin
   );
 };
 
+// --- Helper ---
+const parseDate = (dateString: string) => {
+  if (!dateString) return new Date();
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 // --- Main Page Logic ---
 
 function MainLanding() {
@@ -174,7 +182,7 @@ function MainLanding() {
     const newBooking: Booking = {
       id: Date.now(),
       servico: activeModal!.name,
-      data: format(parseISO(formDate), 'dd/MM/yyyy'),
+      data: format(parseDate(formDate), 'dd/MM/yyyy'),
       horario: formTime,
       nome: formName,
       telefone: formPhone,
@@ -559,7 +567,7 @@ function MainLanding() {
                     required
                   >
                     <option value="">Selecione...</option>
-                    {(isSaturday(parseISO(formDate)) ? WORKING_HOURS.saturday : WORKING_HOURS.weekday).map(h => (
+                    {(isSaturday(parseDate(formDate)) ? WORKING_HOURS.saturday : WORKING_HOURS.weekday).map(h => (
                       <option key={h} value={h}>{h}</option>
                     ))}
                   </select>
