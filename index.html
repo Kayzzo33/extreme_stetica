@@ -19,8 +19,8 @@
             colors: {
               primary: '#8B0000',
               accent: '#DC143C',
-              dark: '#0A0A0A',
-              card: '#1A1A1A',
+              dark: '#000000',
+              card: '#0A0A0A',
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
@@ -52,36 +52,47 @@
     </script>
     <style>
       body {
-        background-color: #0A0A0A;
+        background-color: #000000;
         color: #FFFFFF;
         overflow-x: hidden;
       }
       .glass {
-        background: rgba(26, 26, 26, 0.6);
+        background: rgba(10, 10, 10, 0.8);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.05);
       }
       .text-glow {
-        text-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+        text-shadow: 0 0 15px rgba(220, 20, 60, 0.6);
       }
       .btn-glow:hover {
-        box-shadow: 0 0 20px rgba(220, 20, 60, 0.6);
+        box-shadow: 0 0 25px rgba(220, 20, 60, 0.5);
       }
       ::-webkit-scrollbar {
         width: 6px;
       }
       ::-webkit-scrollbar-track {
-        background: #0A0A0A;
+        background: #000000;
       }
       ::-webkit-scrollbar-thumb {
-        background: #8B0000;
+        background: #333;
         border-radius: 10px;
       }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #DC143C;
+      }
       .bg-animated {
-        background: linear-gradient(-45deg, #0A0A0A, #1A1A1A, #8B0000, #0A0A0A);
+        background: linear-gradient(-45deg, #000000, #050505, #0a0a0a, #000000);
         background-size: 400% 400%;
-        animation: gradient-x 15s ease infinite;
+        animation: gradient-x 20s ease infinite;
+      }
+      /* Custom play button overlay */
+      .play-overlay {
+        background: rgba(0,0,0,0.4);
+        transition: all 0.3s ease;
+      }
+      .play-overlay:hover {
+        background: rgba(0,0,0,0.2);
       }
     </style>
   <script type="importmap">
@@ -90,11 +101,17 @@
     "react": "https://esm.sh/react@18.2.0",
     "react-dom": "https://esm.sh/react-dom@18.2.0",
     "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "lucide-react": "https://esm.sh/lucide-react@0.263.1?external=react",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.22.3?external=react,react-dom",
+    "lucide-react": "https://esm.sh/lucide-react@0.263.1?external=react,react-dom",
     "date-fns": "https://esm.sh/date-fns@2.30.0",
     "date-fns/locale": "https://esm.sh/date-fns@2.30.0/locale",
+    "recharts": "https://esm.sh/recharts@2.12.2?external=react,react-dom",
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js",
     "react/": "https://esm.sh/react@18.2.0/",
-    "react-dom/": "https://esm.sh/react-dom@18.2.0/"
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "firebase/": "https://esm.sh/firebase@^12.9.0/"
   }
 }
 </script>

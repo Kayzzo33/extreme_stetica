@@ -23,6 +23,19 @@ export const PRODUCTS: Product[] = [
   { id: 'p4', name: 'Vönix V-Polish', description: 'Compostos polidores de corte, refino e lustro para acabamento espelhado.', image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=600', isProfessional: true },
 ];
 
+export const REELS = [
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592379/WhatsApp_Video_2026-01-29_at_15.53.09_oseidc.mp4",
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592361/WhatsApp_Video_2026-01-28_at_09.26.04_lp19nb.mp4",
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592337/WhatsApp_Video_2026-01-30_at_13.14.32_c9n5md.mp4",
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592346/WhatsApp_Video_2026-02-04_at_13.01.42_oeotqg.mp4",
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592346/WhatsApp_Video_2026-02-04_at_13.01.42_oeotqg.mp4", // Duplicado intencionalmente conforme pedido
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592341/WhatsApp_Video_2026-01-31_at_19.23.42_y0s42v.mp4",
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592338/WhatsApp_Video_2026-01-31_at_15.53.20_b8jhng.mp4",
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592336/WhatsApp_Video_2026-02-07_at_20.11.09_iuvvzs.mp4",
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592335/WhatsApp_Video_2026-02-04_at_12.04.25_trmlpx.mp4",
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592335/WhatsApp_Video_2026-02-07_at_20.10.56_objzah.mp4"
+];
+
 export const WORKING_HOURS = {
   weekday: ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
   saturday: ['08:00', '09:00', '10:00', '11:00'],
@@ -33,4 +46,5 @@ export const CONTACT_INFO = {
   instagram: '@extreme_stetica',
   address: 'R. Edson Ribeiro Almeida, 150, Maracás - BA, 45360-000',
   mapsLink: 'https://www.google.com/maps/place/R.+Edson+Ribeiro+Almeida,+150,+Maracás+-+BA,+45360-000/@-13.4409851,-40.4398782,17z/',
+  facadeImage: 'https://res.cloudinary.com/dhtmv1kxb/image/upload/v1770593141/WhatsApp_Image_2026-01-26_at_20.28.22_bnrivx.jpg'
 };

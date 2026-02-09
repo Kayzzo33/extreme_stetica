@@ -1,23 +1,27 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { 
   Calendar, Clock, Car, MapPin, Phone, Instagram, Shield, Sparkles, 
   Droplets, Zap, ShieldCheck, Gem, Sun, Layers, Star, UserCheck, 
-  Cpu, Search, X, ChevronRight, CheckCircle, AlertCircle, Menu, Info
+  Cpu, X, ChevronRight, CheckCircle, AlertCircle, Info, Play
 } from 'lucide-react';
 import { format, isSaturday, startOfToday, parseISO } from 'date-fns';
-import { SERVICES, PRODUCTS, WORKING_HOURS, CONTACT_INFO } from './constants';
+import { doc, getDoc, updateDoc, increment, setDoc } from "firebase/firestore";
+import { db } from './firebaseConfig';
+import { SERVICES, PRODUCTS as DEFAULT_PRODUCTS, WORKING_HOURS, CONTACT_INFO, REELS as DEFAULT_REELS } from './constants';
 import { Service, Booking, Product } from './types';
+import Admin from './Admin';
 
 // --- Components ---
 
 const SectionTitle = ({ children, subtitle }: { children?: React.ReactNode, subtitle?: string }) => (
-  <div className="mb-10 text-center px-4 relative z-10">
-    <h2 className="text-3xl md:text-4xl font-display font-black uppercase tracking-tighter mb-2 italic">
+  <div className="mb-12 text-center px-4 relative z-10">
+    <h2 className="text-3xl md:text-5xl font-display font-black uppercase tracking-tighter mb-4 italic text-white">
       {children}
     </h2>
-    {subtitle && <p className="text-gray-400 max-w-lg mx-auto text-sm">{subtitle}</p>}
-    <div className="w-24 h-1 bg-accent mx-auto mt-4 rounded-full shadow-[0_0_15px_#DC143C]"></div>
+    {subtitle && <p className="text-gray-500 max-w-lg mx-auto text-sm font-medium tracking-wide">{subtitle}</p>}
+    <div className="w-16 h-1 bg-accent mx-auto mt-6 rounded-full shadow-[0_0_20px_#DC143C]"></div>
   </div>
 );
 
@@ -35,14 +39,69 @@ const Toast = ({ message, type = 'success', onClose }: { message: string, type?:
   );
 };
 
-// --- Main App ---
+const ReelCard = ({ url, index, playingIndex, setPlayingIndex }: { url: string, index: number, playingIndex: number | null, setPlayingIndex: (i: number | null) => void }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isPlaying = playingIndex === index;
 
-export default function App() {
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.play().catch(e => console.error("Error playing:", e));
+      } else {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+    }
+  }, [isPlaying]);
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      setPlayingIndex(null);
+    } else {
+      setPlayingIndex(index);
+    }
+  };
+
+  return (
+    <div className="aspect-[9/16] relative rounded-2xl overflow-hidden glass border border-white/5 group shadow-lg">
+      <video
+        ref={videoRef}
+        src={url}
+        className="w-full h-full object-cover"
+        loop
+        playsInline
+        controls={isPlaying} 
+        preload="metadata"
+      />
+      
+      {!isPlaying && (
+        <div 
+          className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer play-overlay"
+          onClick={togglePlay}
+        >
+          <div className="w-16 h-16 rounded-full bg-accent/90 flex items-center justify-center shadow-[0_0_30px_#DC143C] group-hover:scale-110 transition-transform">
+            <Play className="text-white fill-current ml-1" size={32} />
+          </div>
+          <div className="absolute bottom-4 left-0 right-0 text-center">
+            <span className="text-[10px] uppercase font-black tracking-widest text-white/80">Assistir</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- Main Page Logic ---
+
+function MainLanding() {
   const [activeModal, setActiveModal] = useState<Service | null>(null);
-  const [trackerPhone, setTrackerPhone] = useState('');
-  const [foundBookings, setFoundBookings] = useState<Booking[]>([]);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [playingReel, setPlayingReel] = useState<number | null>(null);
+  
+  // Data from CMS
+  const [reels, setReels] = useState<string[]>(DEFAULT_REELS);
+  const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
 
   // Booking Form State
   const [formDate, setFormDate] = useState(format(startOfToday(), 'yyyy-MM-dd'));
@@ -53,7 +112,34 @@ export default function App() {
   const [formColor, setFormColor] = useState('');
   const [formObs, setFormObs] = useState('');
 
-  // Scroll Handler
+  // Fetch CMS Data and Log Visit
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Log Visit
+        const analyticsRef = doc(db, "analytics", "stats");
+        try {
+          await updateDoc(analyticsRef, { visits: increment(1) });
+        } catch (e) {
+          // If doc doesn't exist yet
+          await setDoc(analyticsRef, { visits: 1 }, { merge: true });
+        }
+
+        // Fetch Content
+        const contentRef = doc(db, "site_content", "main");
+        const docSnap = await getDoc(contentRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.reels) setReels(data.reels);
+          if (data.products) setProducts(data.products);
+        }
+      } catch (error) {
+        console.log("Using default data (offline or config issue)");
+      }
+    };
+    fetchData();
+  }, []);
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -70,20 +156,6 @@ export default function App() {
     }
   };
 
-  // LocalStorage Helpers
-  const saveBooking = (booking: Booking) => {
-    const existing = JSON.parse(localStorage.getItem('extreme_bookings') || '[]');
-    localStorage.setItem('extreme_bookings', JSON.stringify([booking, ...existing]));
-  };
-
-  const searchBookings = (phone: string) => {
-    if (!phone) return;
-    const existing: Booking[] = JSON.parse(localStorage.getItem('extreme_bookings') || '[]');
-    const results = existing.filter(b => b.telefone.replace(/\D/g, '').includes(phone.replace(/\D/g, '')));
-    setFoundBookings(results);
-  };
-
-  // UI Handlers
   const handleBookingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTime || !formName || !formPhone || !formVehicle) {
@@ -107,9 +179,8 @@ export default function App() {
     };
 
     setTimeout(() => {
-      saveBooking(newBooking);
       setIsLoading(false);
-      setToast({ message: 'Agendamento registrado com sucesso!', type: 'success' });
+      setToast({ message: 'Redirecionando para o WhatsApp...', type: 'success' });
       
       const message = `Olá, EXTREME STÉTICA! 🚗\nGostaria de agendar o serviço:\n📋 Serviço: ${newBooking.servico}\n📅 Data: ${newBooking.data}\n🕐 Horário: ${newBooking.horario}\n👤 Cliente:\nNome: ${newBooking.nome}\nTelefone: ${newBooking.telefone}\nVeículo: ${newBooking.veiculo} - ${newBooking.cor}\n💬 Observações: ${newBooking.obs}\nAguardo confirmação!`;
 
@@ -162,7 +233,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-dark text-white font-sans selection:bg-accent selection:text-white">
       {/* Background Effect */}
-      <div className="fixed inset-0 z-0 bg-animated opacity-40 pointer-events-none"></div>
+      <div className="fixed inset-0 z-0 bg-animated opacity-20 pointer-events-none"></div>
       
       {/* Emergency Button */}
       <a 
@@ -188,13 +259,16 @@ export default function App() {
 
       {/* Hero Section */}
       <section id="home" className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-10 px-6 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(220,20,60,0.1),transparent_70%)] pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(30,30,30,0.3),transparent_70%)] pointer-events-none"></div>
         
-        <div className="relative z-10 text-center animate-fade-up max-w-4xl mx-auto">
-          <h1 className="text-6xl md:text-9xl font-display font-black tracking-widest text-white mb-6 italic leading-tight">
-            EXTREME<br/><span className="text-accent text-glow">STÉTICA</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-300 font-light mb-10 max-w-2xl mx-auto uppercase tracking-widest">
+        <div className="relative z-10 text-center animate-fade-up max-w-4xl mx-auto flex flex-col items-center">
+          <img 
+            src="https://res.cloudinary.com/dhtmv1kxb/image/upload/v1770597135/Design_sem_nome_55_jw0ktv.png" 
+            alt="Extreme Stética Logo"
+            className="w-full max-w-[500px] h-auto mb-8 drop-shadow-[0_0_30px_rgba(220,20,60,0.3)] hover:scale-105 transition-transform duration-500"
+          />
+          
+          <p className="text-xl md:text-2xl text-gray-400 font-light mb-10 max-w-2xl mx-auto uppercase tracking-widest">
             Tecnologia de ponta encontra a <span className="text-white font-bold border-b-2 border-accent">arte automotiva</span>
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
@@ -210,10 +284,10 @@ export default function App() {
               onClick={() => scrollToSection('localizacao')}
               className="w-full sm:w-auto px-10 py-5 glass rounded-2xl font-bold text-xl hover:bg-white/10 transition-all active:scale-95"
             >
-              Ver Localização
+              Nossa Sede
             </button>
           </div>
-          <p className="mt-12 text-sm text-gray-500 font-medium uppercase tracking-[0.4em] opacity-80">
+          <p className="mt-12 text-sm text-gray-600 font-medium uppercase tracking-[0.4em] opacity-80">
             Estética automotiva de alta performance em Maracás-BA
           </p>
         </div>
@@ -224,7 +298,7 @@ export default function App() {
       </section>
 
       {/* Services Section */}
-      <section id="servicos" className="relative py-32 z-10 bg-gradient-to-b from-transparent via-dark/80 to-transparent">
+      <section id="servicos" className="relative py-32 z-10">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Transformação estética com produtos premium e técnica certificada.">
             Nossos Serviços
@@ -240,11 +314,11 @@ export default function App() {
                   style={{ animationDelay: `${idx * 0.05}s` }}
                 >
                   <div className="mb-6">
-                    <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-6 group-hover:bg-accent group-hover:text-white transition-colors duration-300">
+                    <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:bg-accent group-hover:text-white transition-colors duration-300">
                       <IconComp size={28} />
                     </div>
                     <h3 className="text-2xl font-bold mb-3 pr-10 tracking-tight">{service.name}</h3>
-                    <p className="text-gray-400 text-sm font-light mb-6 line-clamp-2 leading-relaxed">{service.description}</p>
+                    <p className="text-gray-500 text-sm font-light mb-6 line-clamp-2 leading-relaxed group-hover:text-gray-300 transition-colors">{service.description}</p>
                   </div>
 
                   <div className="mt-auto pt-6 border-t border-white/5 space-y-4">
@@ -270,102 +344,47 @@ export default function App() {
         </div>
       </section>
 
-      {/* Tracking Section */}
-      <section id="rastreio" className="py-32 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-card/20 to-transparent"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <SectionTitle subtitle="Acompanhe cada etapa do detalhamento do seu veículo.">
-            Acompanhe Seu Serviço
+      {/* REELS SECTION */}
+      <section id="reels" className="py-32 relative bg-card/30">
+        <div className="container mx-auto px-4">
+          <SectionTitle subtitle="Confira um pouco do nosso trabalho em ação.">
+            Nosso Reels
           </SectionTitle>
-
-          <div className="max-w-2xl mx-auto glass p-10 rounded-[40px] shadow-2xl border border-white/10">
-            <div className="flex flex-col sm:flex-row gap-4 mb-10">
-              <div className="flex-1 relative">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-accent" size={20} />
-                <input 
-                  type="text" 
-                  placeholder="Seu telefone (DDD) 9XXXX-XXXX"
-                  className="w-full bg-dark/40 border border-white/5 rounded-2xl py-5 pl-14 pr-6 focus:ring-2 focus:ring-accent focus:outline-none transition-all font-bold text-lg"
-                  value={trackerPhone}
-                  onChange={(e) => {
-                    const val = formatPhone(e.target.value);
-                    setTrackerPhone(val);
-                    if (val.length >= 10) searchBookings(val);
-                  }}
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {reels.map((url, idx) => (
+              url ? (
+                <ReelCard 
+                  key={idx} 
+                  url={url} 
+                  index={idx}
+                  playingIndex={playingReel}
+                  setPlayingIndex={setPlayingReel}
                 />
-              </div>
-              <button 
-                onClick={() => searchBookings(trackerPhone)}
-                className="bg-accent px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-[0_0_15px_rgba(220,20,60,0.3)]"
-              >
-                Buscar
-              </button>
-            </div>
-
-            {foundBookings.length > 0 ? (
-              <div className="space-y-8">
-                {foundBookings.map((b) => (
-                  <div key={b.id} className="p-8 bg-dark/60 rounded-[32px] border border-white/10 animate-fade-up shadow-inner">
-                    <div className="flex justify-between items-start mb-8">
-                      <div>
-                        <h4 className="text-xl font-display font-black uppercase italic text-accent tracking-tighter">{b.servico}</h4>
-                        <p className="text-sm text-gray-400 font-medium mt-1 uppercase tracking-widest">{b.veiculo} • {b.data} às {b.horario}</p>
-                      </div>
-                      <span className={`px-4 py-1.5 rounded-full text-[10px] uppercase font-black tracking-widest shadow-lg ${
-                        b.status === 'concluido' ? 'bg-green-500' : 'bg-accent'
-                      }`}>
-                        {b.status.replace('_', ' ')}
-                      </span>
-                    </div>
-
-                    <div className="relative pt-8 pb-4">
-                      <div className="absolute top-10 left-0 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                        <div className={`h-full bg-accent transition-all duration-1000 shadow-[0_0_10px_#DC143C]`} style={{ width: b.status === 'concluido' ? '100%' : b.status === 'em_andamento' ? '66%' : b.status === 'confirmado' ? '33%' : '5%' }}></div>
-                      </div>
-                      <div className="relative flex justify-between">
-                        {[
-                          { label: 'Agendado', key: 'pendente' },
-                          { label: 'Confirmado', key: 'confirmado' },
-                          { label: 'Progresso', key: 'em_andamento' },
-                          { label: 'Concluído', key: 'concluido' }
-                        ].map((step, idx) => {
-                          const isActive = ['pendente', 'confirmado', 'em_andamento', 'concluido'].indexOf(b.status) >= idx;
-                          return (
-                            <div key={step.key} className="flex flex-col items-center gap-4">
-                              <div className={`w-6 h-6 rounded-full z-10 border-4 transition-all duration-500 ${
-                                isActive ? 'bg-accent border-dark scale-125 shadow-[0_0_15px_#DC143C]' : 'bg-dark border-white/10'
-                              }`}></div>
-                              <span className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${isActive ? 'text-white' : 'text-gray-700'}`}>
-                                {step.label}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : trackerPhone.length > 5 && (
-              <div className="text-center py-12">
-                <p className="text-gray-600 font-bold uppercase tracking-widest italic text-sm">Nenhum agendamento encontrado.</p>
-              </div>
-            )}
+              ) : null
+            ))}
           </div>
         </div>
       </section>
 
       {/* Vönix Products */}
-      <section id="produtos" className="py-32 bg-gradient-to-b from-transparent via-dark/50 to-transparent">
+      <section id="produtos" className="py-32">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Utilizamos exclusivamente o que há de melhor no mercado mundial.">
             Tecnologia Profissional
           </SectionTitle>
+          
+          <div className="text-center mb-12 animate-fade-up">
+            <span className="inline-block px-6 py-2 rounded-full border border-accent/30 bg-accent/10 text-accent font-bold uppercase tracking-widest text-xs md:text-sm">
+              Trabalhamos com todos os produtos da linha Vonixx
+            </span>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {PRODUCTS.map((prod) => (
+            {products.map((prod) => (
               <div key={prod.id} className="group glass overflow-hidden rounded-[32px] transition-all hover:-translate-y-2 border-white/5 hover:border-accent/30 shadow-2xl">
                 <div className="h-56 overflow-hidden relative">
-                  <img src={prod.image} alt={prod.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" />
+                  <img src={prod.image} alt={prod.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-100 grayscale group-hover:grayscale-0" />
                   {prod.isProfessional && (
                     <div className="absolute top-5 right-5 bg-accent text-[9px] font-black uppercase px-3 py-1.5 rounded-lg shadow-xl tracking-widest">
                       Vönix Tech
@@ -374,7 +393,7 @@ export default function App() {
                 </div>
                 <div className="p-8">
                   <h3 className="text-xl font-bold mb-3 group-hover:text-accent transition-colors tracking-tight">{prod.name}</h3>
-                  <p className="text-xs text-gray-400 font-medium leading-relaxed opacity-80">{prod.description}</p>
+                  <p className="text-xs text-gray-500 font-medium leading-relaxed group-hover:text-gray-300 transition-colors">{prod.description}</p>
                 </div>
               </div>
             ))}
@@ -383,81 +402,89 @@ export default function App() {
       </section>
 
       {/* Gallery Section */}
-      <section className="py-32 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-card/10 to-transparent"></div>
+      <section className="py-32 relative bg-card/30">
         <div className="container mx-auto px-4 relative z-10">
           <SectionTitle subtitle="Os resultados que desafiam o tempo estarão em breve disponíveis aqui.">
             Transformações
           </SectionTitle>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[1, 2, 3, 4, 5, 6].map((_, i) => (
-              <div key={i} className="aspect-square glass rounded-[32px] flex items-center justify-center border border-white/10 group hover:border-accent/40 transition-all duration-500 shadow-xl overflow-hidden relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div key={i} className="aspect-square glass rounded-[32px] flex items-center justify-center border border-white/5 group hover:border-accent/20 transition-all duration-500 shadow-xl overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                  <div className="text-center px-4 relative z-10">
-                   <Sparkles className="text-accent mx-auto mb-4 opacity-10 group-hover:opacity-50 group-hover:scale-110 transition-all duration-500" size={40} />
-                   <span className="text-[11px] md:text-sm font-black uppercase tracking-[0.4em] text-white/20 group-hover:text-white/40 transition-colors italic">Em breve</span>
+                   <Sparkles className="text-accent mx-auto mb-4 opacity-20 group-hover:opacity-60 group-hover:scale-110 transition-all duration-500" size={40} />
+                   <span className="text-[11px] md:text-sm font-black uppercase tracking-[0.4em] text-white/10 group-hover:text-white/40 transition-colors italic">Em breve</span>
                  </div>
               </div>
             ))}
           </div>
-          <p className="text-center mt-12 text-xs text-gray-700 uppercase font-black tracking-[0.4em] italic animate-pulse">Inovação e Perfeição</p>
+          <p className="text-center mt-12 text-xs text-gray-800 uppercase font-black tracking-[0.4em] italic animate-pulse">Inovação e Perfeição</p>
         </div>
       </section>
 
       {/* Location Section */}
-      <section id="localizacao" className="py-32 bg-gradient-to-b from-transparent to-dark">
+      <section id="localizacao" className="py-32">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Venha nos visitar em Maracás. Café e paixão automotiva garantidos.">
             Nossa Sede
           </SectionTitle>
-          <div className="flex flex-col lg:flex-row gap-12 max-w-6xl mx-auto items-stretch">
-            <div className="lg:w-1/3 flex flex-col justify-center">
-              <div className="glass p-10 rounded-[40px] space-y-8 shadow-2xl border border-white/10">
-                <div className="space-y-6">
-                  <div className="flex items-start gap-5">
-                    <div className="p-4 bg-accent/10 rounded-2xl text-accent shadow-inner">
-                      <MapPin size={26} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1 tracking-tight">Endereço</h4>
-                      <p className="text-sm text-gray-400 leading-relaxed font-medium">{CONTACT_INFO.address}</p>
-                    </div>
+          <div className="max-w-4xl mx-auto">
+            <div className="relative rounded-[40px] overflow-hidden shadow-2xl group border border-white/10 h-[500px] md:h-[600px]">
+              <div className="w-full h-full relative">
+                <img 
+                  src={CONTACT_INFO.facadeImage} 
+                  alt="Fachada Extreme Stética" 
+                  className="w-full h-full object-cover object-bottom grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 transform group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90 group-hover:opacity-60 transition-opacity duration-500"></div>
+                
+                {/* Overlay Content */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10 pointer-events-none">
+                  <div className="mb-6 animate-fade-up">
+                    <MapPin className="w-12 h-12 text-accent mx-auto mb-4 drop-shadow-[0_0_10px_rgba(220,20,60,0.5)]" />
+                    <h3 className="text-3xl font-display font-black uppercase italic mb-2">{CONTACT_INFO.address}</h3>
+                    <p className="text-gray-300 font-medium tracking-widest text-sm">MARACÁS - BAHIA</p>
                   </div>
-                  <div className="flex items-start gap-5">
-                    <div className="p-4 bg-accent/10 rounded-2xl text-accent shadow-inner">
-                      <Clock size={26} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1 tracking-tight">Horários</h4>
-                      <p className="text-sm text-gray-400 font-medium">Segunda - Sexta: 08h às 18h</p>
-                      <p className="text-sm text-gray-400 font-medium">Sábados: 08h às 12h</p>
-                    </div>
+                  
+                  <a 
+                    href={CONTACT_INFO.mapsLink} 
+                    target="_blank"
+                    className="pointer-events-auto px-10 py-5 bg-accent hover:bg-accent/90 text-white font-black uppercase tracking-widest text-sm rounded-2xl shadow-[0_0_30px_rgba(220,20,60,0.4)] hover:shadow-[0_0_50px_rgba(220,20,60,0.6)] hover:scale-105 transition-all duration-300 flex items-center gap-3 group/btn"
+                  >
+                    Ver no Google Maps
+                    <ChevronRight className="group-hover/btn:translate-x-1 transition-transform" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Info Bar */}
+              <div className="absolute bottom-0 left-0 right-0 bg-dark/90 backdrop-blur-xl border-t border-white/10 p-8 grid grid-cols-1 md:grid-cols-2 gap-8 z-20">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/5 rounded-xl text-gray-400">
+                    <Clock size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white uppercase tracking-wider text-sm mb-1">Funcionamento</h4>
+                    <p className="text-xs text-gray-500 font-medium">Seg - Sex: 08h às 18h • Sáb: 08h às 12h</p>
                   </div>
                 </div>
-                <a 
-                  href={CONTACT_INFO.mapsLink} 
-                  target="_blank"
-                  className="block w-full text-center py-5 bg-white text-black font-black uppercase text-xs tracking-widest rounded-2xl hover:bg-accent hover:text-white transition-all shadow-xl active:scale-95"
-                >
-                  Abrir no Google Maps
-                </a>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/5 rounded-xl text-gray-400">
+                    <Instagram size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white uppercase tracking-wider text-sm mb-1">Acompanhe</h4>
+                    <p className="text-xs text-gray-500 font-medium">{CONTACT_INFO.instagram}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="lg:w-2/3 h-[500px] rounded-[48px] overflow-hidden glass p-3 shadow-2xl">
-              <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3876.620015501869!2d-40.4398782!3d-13.4409851!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x742277c0f165a25%3A0xcb3252a123f6e9eb!2sR.%20Edson%20Ribeiro%20Almeida%2C%20150%20-%20Marac%C3%A1s%2C%20BA%2C%2045360-000!5e0!3m2!1spt-BR!2sbr!4v1715424840294!5m2!1spt-BR!2sbr" 
-                className="w-full h-full rounded-[40px] grayscale opacity-70 contrast-125 brightness-75 hover:grayscale-0 hover:opacity-100 transition-all duration-700"
-                style={{ border: 0 }} 
-                allowFullScreen={true} 
-                loading="lazy" 
-              ></iframe>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-dark py-20 border-t border-white/5 relative overflow-hidden">
+      <footer className="bg-black py-20 border-t border-white/5 relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] text-[12rem] font-display font-black pointer-events-none tracking-tighter">
           EXTREME
         </div>
@@ -465,15 +492,16 @@ export default function App() {
           <h2 className="text-3xl font-display font-black tracking-[0.3em] italic mb-8 uppercase">
             EXTREME<span className="text-accent">STÉTICA</span>
           </h2>
-          <div className="flex flex-wrap justify-center gap-8 mb-12 text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+          <div className="flex flex-wrap justify-center gap-8 mb-12 text-xs font-black uppercase tracking-[0.2em] text-gray-600">
             <button onClick={() => scrollToSection('home')} className="hover:text-accent transition-colors">Home</button>
             <button onClick={() => scrollToSection('servicos')} className="hover:text-accent transition-colors">Serviços</button>
-            <button onClick={() => scrollToSection('rastreio')} className="hover:text-accent transition-colors">Rastreio</button>
+            <button onClick={() => scrollToSection('reels')} className="hover:text-accent transition-colors">Reels</button>
             <button onClick={() => scrollToSection('produtos')} className="hover:text-accent transition-colors">Tecnologia</button>
+            <button onClick={() => scrollToSection('localizacao')} className="hover:text-accent transition-colors">Local</button>
           </div>
-          <p className="text-xs text-gray-700 font-bold uppercase tracking-[0.3em] mb-6">© 2025 Extreme Stética • Todos os direitos reservados.</p>
+          <p className="text-xs text-gray-800 font-bold uppercase tracking-[0.3em] mb-6">© 2025 Extreme Stética • Todos os direitos reservados.</p>
           <div className="flex flex-col items-center gap-2">
-            <p className="text-[10px] text-gray-600 uppercase tracking-widest font-black opacity-60">
+            <p className="text-[10px] text-gray-700 uppercase tracking-widest font-black opacity-60">
               Desenvolvido por
             </p>
             <a 
@@ -491,7 +519,7 @@ export default function App() {
       {/* Booking Modal */}
       {activeModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
-          <div className="absolute inset-0 bg-dark/95 backdrop-blur-3xl animate-fade-in" onClick={() => setActiveModal(null)}></div>
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-3xl animate-fade-in" onClick={() => setActiveModal(null)}></div>
           <div className="relative w-full max-w-2xl bg-card rounded-[48px] overflow-hidden border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-fade-up max-h-[90vh] flex flex-col">
             <div className="bg-accent px-10 py-8 flex justify-between items-center shadow-lg relative z-10">
               <div>
@@ -620,5 +648,17 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+// Router Wrapper
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<MainLanding />} />
+        <Route path="/admin" element={<Admin />} />
+      </Routes>
+    </Router>
   );
 }
