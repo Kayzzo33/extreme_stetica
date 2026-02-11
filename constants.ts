@@ -3,6 +3,8 @@ import { Service, Product } from './types';
 
 export const HERO_VIDEO = "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770769204/WhatsApp_Video_2026-02-10_at_21.14.29_nfev9d.mp4";
 export const HERO_VIDEO_MOBILE = "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770771936/WhatsApp_Video_2026-02-10_at_21.43.59_ys3fh5.mp4";
+export const DEFAULT_HERO_OPACITY = 0.5; // 50% de escuridão
+export const DEFAULT_HERO_BLUR = 0; // 0px de desfoque
 
 export const SERVICES: Service[] = [
   { 

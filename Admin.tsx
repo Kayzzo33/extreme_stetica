@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { auth, db } from './firebaseConfig';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { collection, addDoc, query, orderBy, onSnapshot, doc, setDoc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Lock, DollarSign, LogOut, Save, Trash2, Plus, Eye, BarChart3, Image as ImageIcon, Video, MonitorPlay, CalendarDays, Smartphone } from 'lucide-react';
-import { REELS, PRODUCTS, HERO_VIDEO, HERO_VIDEO_MOBILE } from './constants';
+import { Lock, DollarSign, LogOut, Save, Trash2, Plus, Eye, BarChart3, Image as ImageIcon, Video, MonitorPlay, CalendarDays, Smartphone, Settings } from 'lucide-react';
+import { REELS, PRODUCTS, HERO_VIDEO, HERO_VIDEO_MOBILE, DEFAULT_HERO_OPACITY, DEFAULT_HERO_BLUR } from './constants';
 
 export default function Admin() {
   const [user, setUser] = useState<any>(null);
@@ -26,10 +26,12 @@ export default function Admin() {
   const [cmsProducts, setCmsProducts] = useState<any[]>([]);
   const [cmsHeroVideo, setCmsHeroVideo] = useState('');
   const [cmsHeroVideoMobile, setCmsHeroVideoMobile] = useState('');
+  const [cmsHeroOpacity, setCmsHeroOpacity] = useState(DEFAULT_HERO_OPACITY);
+  const [cmsHeroBlur, setCmsHeroBlur] = useState(DEFAULT_HERO_BLUR);
   const [visits, setVisits] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = auth.onAuthStateChanged((u) => {
       setUser(u);
       if (u) {
         loadData();
@@ -60,18 +62,25 @@ export default function Admin() {
         setCmsProducts(data.products || PRODUCTS);
         setCmsHeroVideo(data.heroVideo || HERO_VIDEO);
         setCmsHeroVideoMobile(data.heroVideoMobile || HERO_VIDEO_MOBILE);
+        setCmsHeroOpacity(data.heroOpacity !== undefined ? data.heroOpacity : DEFAULT_HERO_OPACITY);
+        setCmsHeroBlur(data.heroBlur !== undefined ? data.heroBlur : DEFAULT_HERO_BLUR);
       } else {
         // Initialize if not exists
-        setDoc(contentRef, { 
+        const initialData = { 
           reels: REELS, 
           products: PRODUCTS, 
           heroVideo: HERO_VIDEO,
-          heroVideoMobile: HERO_VIDEO_MOBILE
-        });
+          heroVideoMobile: HERO_VIDEO_MOBILE,
+          heroOpacity: DEFAULT_HERO_OPACITY,
+          heroBlur: DEFAULT_HERO_BLUR
+        };
+        setDoc(contentRef, initialData);
         setCmsReels(REELS);
         setCmsProducts(PRODUCTS);
         setCmsHeroVideo(HERO_VIDEO);
         setCmsHeroVideoMobile(HERO_VIDEO_MOBILE);
+        setCmsHeroOpacity(DEFAULT_HERO_OPACITY);
+        setCmsHeroBlur(DEFAULT_HERO_BLUR);
       }
     });
 
@@ -87,13 +96,13 @@ export default function Admin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await auth.signInWithEmailAndPassword(email, password);
     } catch (error) {
       alert("Erro ao logar. Verifique suas credenciais.");
     }
   };
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = () => auth.signOut();
 
   const addTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +123,9 @@ export default function Admin() {
       reels: cmsReels,
       products: cmsProducts,
       heroVideo: cmsHeroVideo,
-      heroVideoMobile: cmsHeroVideoMobile
+      heroVideoMobile: cmsHeroVideoMobile,
+      heroOpacity: cmsHeroOpacity,
+      heroBlur: cmsHeroBlur
     });
     alert("Conteúdo atualizado no site!");
   };
@@ -370,33 +381,78 @@ export default function Admin() {
             </div>
             
             {/* HERO VIDEO EDIT */}
-            <div className="bg-card p-6 rounded-2xl border border-white/5 border-l-4 border-l-accent grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <MonitorPlay className="text-accent" /> Vídeo Desktop (Horizontal)
-                </h3>
-                <p className="text-sm text-gray-500 mb-3">Vídeo principal para computadores.</p>
-                <input 
-                  type="text" 
-                  className="w-full bg-dark border border-white/10 p-3 rounded-lg text-white text-sm"
-                  placeholder="https://..."
-                  value={cmsHeroVideo}
-                  onChange={(e) => setCmsHeroVideo(e.target.value)}
-                />
+            <div className="grid grid-cols-1 gap-6">
+              <div className="bg-card p-6 rounded-2xl border border-white/5 border-l-4 border-l-accent grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <MonitorPlay className="text-accent" /> Vídeo Desktop (Horizontal)
+                  </h3>
+                  <input 
+                    type="text" 
+                    className="w-full bg-dark border border-white/10 p-3 rounded-lg text-white text-sm"
+                    placeholder="https://..."
+                    value={cmsHeroVideo}
+                    onChange={(e) => setCmsHeroVideo(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Smartphone className="text-accent" /> Vídeo Mobile (Vertical)
+                  </h3>
+                  <input 
+                    type="text" 
+                    className="w-full bg-dark border border-white/10 p-3 rounded-lg text-white text-sm"
+                    placeholder="https://..."
+                    value={cmsHeroVideoMobile}
+                    onChange={(e) => setCmsHeroVideoMobile(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div>
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <Smartphone className="text-accent" /> Vídeo Mobile (Vertical)
-                </h3>
-                <p className="text-sm text-gray-500 mb-3">Vídeo otimizado para celulares.</p>
-                <input 
-                  type="text" 
-                  className="w-full bg-dark border border-white/10 p-3 rounded-lg text-white text-sm"
-                  placeholder="https://..."
-                  value={cmsHeroVideoMobile}
-                  onChange={(e) => setCmsHeroVideoMobile(e.target.value)}
-                />
+              {/* VIDEO SETTINGS (BLUR & OPACITY) */}
+              <div className="bg-card p-6 rounded-2xl border border-white/5 grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div>
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                      <Settings className="text-accent" /> Ajustes Visuais do Vídeo
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-6">Controle a qualidade e a escuridão do vídeo de fundo em tempo real.</p>
+                 </div>
+                 <div className="space-y-6">
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-sm font-bold text-gray-300">Escuridão (Overlay)</label>
+                        <span className="text-sm text-accent font-bold">{Math.round(cmsHeroOpacity * 100)}%</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="1" 
+                        step="0.05"
+                        value={cmsHeroOpacity}
+                        onChange={(e) => setCmsHeroOpacity(parseFloat(e.target.value))}
+                        className="w-full accent-accent h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <p className="text-xs text-gray-600 mt-1">Quanto maior, mais escuro o vídeo fica para ler o texto.</p>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-sm font-bold text-gray-300">Desfoque (Blur)</label>
+                        <span className="text-sm text-accent font-bold">{cmsHeroBlur}px</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="10" 
+                        step="0.5"
+                        value={cmsHeroBlur}
+                        onChange={(e) => setCmsHeroBlur(parseFloat(e.target.value))}
+                        className="w-full accent-accent h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <p className="text-xs text-gray-600 mt-1">0px = Vídeo Nítido. Aumente se quiser desfocar o fundo.</p>
+                    </div>
+                 </div>
               </div>
             </div>
 

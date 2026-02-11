@@ -9,7 +9,7 @@ import {
 import { format, isSaturday } from 'date-fns';
 import { doc, getDoc, updateDoc, increment, setDoc, addDoc, collection } from "firebase/firestore";
 import { db } from './firebaseConfig';
-import { SERVICES, PRODUCTS as DEFAULT_PRODUCTS, WORKING_HOURS, CONTACT_INFO, REELS as DEFAULT_REELS, HERO_VIDEO as DEFAULT_HERO_VIDEO, HERO_VIDEO_MOBILE as DEFAULT_HERO_VIDEO_MOBILE } from './constants';
+import { SERVICES, PRODUCTS as DEFAULT_PRODUCTS, WORKING_HOURS, CONTACT_INFO, REELS as DEFAULT_REELS, HERO_VIDEO as DEFAULT_HERO_VIDEO, HERO_VIDEO_MOBILE as DEFAULT_HERO_VIDEO_MOBILE, DEFAULT_HERO_OPACITY, DEFAULT_HERO_BLUR } from './constants';
 import { Service, Booking, Product } from './types';
 import Admin from './Admin';
 
@@ -61,8 +61,8 @@ const Toast = ({ message, type = 'success', onClose }: { message: string, type?:
   }, [onClose]);
 
   return (
-    <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-xl glass border-l-4 ${type === 'success' ? 'border-green-500' : 'border-red-500'} flex items-center gap-3 animate-fade-up shadow-2xl`}>
-      {type === 'success' ? <CheckCircle className="text-green-500" /> : <AlertCircle className="text-red-500" />}
+    <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-xl glass border-l-4 ${type === 'success' ? 'border-green-500' : 'border-red-500'} flex items-center gap-3 animate-fade-up shadow-2xl w-max max-w-[90vw]`}>
+      {type === 'success' ? <CheckCircle className="text-green-500 shrink-0" /> : <AlertCircle className="text-red-500 shrink-0" />}
       <span className="text-sm font-medium">{message}</span>
     </div>
   );
@@ -163,13 +163,14 @@ function MainLanding() {
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [playingReel, setPlayingReel] = useState<number | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
   
   // Data from CMS
   const [reels, setReels] = useState<string[]>(DEFAULT_REELS);
   const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
   const [heroVideo, setHeroVideo] = useState<string>(DEFAULT_HERO_VIDEO);
   const [heroVideoMobile, setHeroVideoMobile] = useState<string>(DEFAULT_HERO_VIDEO_MOBILE);
+  const [heroOpacity, setHeroOpacity] = useState<number>(DEFAULT_HERO_OPACITY);
+  const [heroBlur, setHeroBlur] = useState<number>(DEFAULT_HERO_BLUR);
 
   // Booking Form State
   const [formDate, setFormDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -179,14 +180,6 @@ function MainLanding() {
   const [formVehicle, setFormVehicle] = useState('');
   const [formColor, setFormColor] = useState('');
   const [formObs, setFormObs] = useState('');
-
-  // Detect Mobile
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    handleResize(); // Initial check
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Fetch CMS Data and Log Visit
   useEffect(() => {
@@ -210,6 +203,8 @@ function MainLanding() {
           if (data.products) setProducts(data.products);
           if (data.heroVideo) setHeroVideo(data.heroVideo);
           if (data.heroVideoMobile) setHeroVideoMobile(data.heroVideoMobile);
+          if (data.heroOpacity !== undefined) setHeroOpacity(data.heroOpacity);
+          if (data.heroBlur !== undefined) setHeroBlur(data.heroBlur);
         }
       } catch (error) {
         console.log("Using default data (offline or config issue)");
@@ -327,86 +322,107 @@ function MainLanding() {
       {/* Background Effect */}
       <div className="fixed inset-0 z-0 bg-animated opacity-20 pointer-events-none"></div>
       
-      {/* Emergency Button - Moved to TOP on Mobile */}
+      {/* Emergency Button - Fixed TOP Right */}
       <a 
         href={`https://wa.me/5573988176142?text=${encodeURIComponent('🚨 ATENDIMENTO URGENTE!\nPreciso de um serviço com prioridade.\nAguardo retorno imediato.')}`}
         target="_blank"
-        className="fixed top-4 right-4 z-50 md:top-auto md:right-6 md:bottom-6 md:left-auto group"
+        className="fixed top-4 right-4 z-[90] group"
       >
-        <div className="flex items-center gap-2 px-3 py-2 md:px-5 md:py-3 rounded-full bg-accent text-white font-bold shadow-[0_0_25px_#DC143C] animate-pulse-fast hover:scale-105 transition-transform text-xs md:text-base">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-accent text-white font-bold shadow-[0_0_25px_#DC143C] animate-pulse-fast hover:scale-105 transition-transform text-xs">
+          <span className="md:hidden font-black tracking-wider">SOS</span>
           <span className="hidden md:inline">Atendimento Urgente</span>
-          <span className="md:hidden">Urgência</span>
-          <AlertCircle size={16} className="md:w-5 md:h-5" />
+          <AlertCircle size={16} />
         </div>
       </a>
 
-      {/* WhatsApp Fixed Button */}
+      {/* WhatsApp Fixed Button - Bottom Right */}
       <a 
         href={`https://wa.me/5573988176142`}
         target="_blank"
-        className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-[#25D366] text-white shadow-xl hover:scale-110 transition-transform md:p-5"
+        className="fixed bottom-6 right-6 z-[90] p-4 rounded-full bg-[#25D366] text-white shadow-xl hover:scale-110 transition-transform md:p-5"
       >
         <Phone size={24} />
       </a>
 
       {/* Hero Section */}
-      <section id="home" className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-10 px-6 overflow-hidden">
+      <section id="home" className="relative h-[100dvh] w-full flex flex-col items-center justify-center px-4 overflow-hidden">
         
-        {/* PARALLAX VIDEO BACKGROUND */}
-        {/* We use 'fixed' position to create the parallax effect where the video stays and content scrolls over it */}
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* PARALLAX VIDEO BACKGROUND - Render Both, Toggle via CSS */}
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-black">
+           {/* Mobile Video - Only shows on small screens */}
            <video 
-              key={isMobile ? 'mobile' : 'desktop'} // Key forces re-render when switching view modes
               autoPlay 
               loop 
               muted 
               playsInline 
-              className="absolute top-1/2 left-1/2 w-full h-full object-cover -translate-x-1/2 -translate-y-1/2"
-              src={isMobile && heroVideoMobile ? heroVideoMobile : heroVideo}
-              style={{ filter: 'brightness(0.4) blur(1px)' }} // Added brightness filter for better text contrast
+              poster={CONTACT_INFO.facadeImage} // Fallback image while loading
+              className="absolute inset-0 w-full h-full object-cover block md:hidden"
+              src={heroVideoMobile}
+              style={{ filter: `blur(${heroBlur}px)` }} 
             />
-           {/* Gradient Overlay for Text Readability */}
-           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-dark z-10"></div>
+            {/* Desktop Video - Only shows on medium+ screens */}
+            <video 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              poster={CONTACT_INFO.facadeImage}
+              className="absolute inset-0 w-full h-full object-cover hidden md:block"
+              src={heroVideo}
+              style={{ filter: `blur(${heroBlur}px)` }}
+            />
+           {/* Dynamic Dark Overlay */}
+           <div className="absolute inset-0 z-10 bg-black transition-opacity duration-300" style={{ opacity: heroOpacity }}></div>
+           
+           {/* Constant Gradient for Readability */}
+           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-dark/90 z-10"></div>
         </div>
         
-        <div className="relative z-20 text-center animate-fade-up max-w-4xl mx-auto flex flex-col items-center mt-12 md:mt-0">
+        {/* Main Content - Layout Optimized for Mobile */}
+        <div className="relative z-20 text-center animate-fade-up w-full max-w-5xl mx-auto flex flex-col items-center justify-center h-full md:pb-0">
+          
           <img 
             src="https://res.cloudinary.com/dhtmv1kxb/image/upload/v1770597135/Design_sem_nome_55_jw0ktv.png" 
             alt="Extreme Stética Logo"
-            className="w-full max-w-[500px] h-auto mb-8 drop-shadow-[0_0_30px_rgba(220,20,60,0.3)] hover:scale-105 transition-transform duration-500"
+            // Adjusted size for mobile (w-60) and margins (mb-4) to fit everything
+            className="w-60 md:w-[500px] h-auto mb-4 md:mb-10 drop-shadow-[0_0_30px_rgba(220,20,60,0.3)] mt-[-40px] md:mt-0"
           />
           
-          <p className="text-xl md:text-2xl text-gray-200 font-light mb-10 max-w-2xl mx-auto uppercase tracking-widest text-glow">
-            Tecnologia de ponta encontra a <span className="text-white font-bold border-b-2 border-accent">arte automotiva</span>
+          <p className="text-sm md:text-2xl text-gray-200 font-light mb-6 md:mb-12 max-w-2xl mx-auto uppercase tracking-widest text-glow px-2">
+            Tecnologia de ponta encontra a <br className="md:hidden" /> <span className="text-white font-bold border-b-2 border-accent">arte automotiva</span>
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+
+          <div className="flex flex-col w-full px-6 gap-3 md:flex-row md:items-center md:justify-center md:gap-8">
             <button 
               type="button"
               onClick={() => scrollToSection('servicos')}
-              className="w-full sm:w-auto px-10 py-5 bg-accent rounded-2xl font-bold text-xl btn-glow transition-all hover:-translate-y-1 hover:brightness-110 active:scale-95 shadow-2xl"
+              className="w-full md:w-auto px-6 py-4 bg-accent rounded-2xl font-bold text-base md:text-xl btn-glow transition-all hover:-translate-y-1 hover:brightness-110 active:scale-95 shadow-2xl"
             >
               Agendar Serviço
             </button>
             <button 
               type="button"
               onClick={() => scrollToSection('localizacao')}
-              className="w-full sm:w-auto px-10 py-5 glass rounded-2xl font-bold text-xl hover:bg-white/10 transition-all active:scale-95 backdrop-blur-md"
+              className="w-full md:w-auto px-6 py-4 glass rounded-2xl font-bold text-base md:text-xl hover:bg-white/10 transition-all active:scale-95 backdrop-blur-md"
             >
               Nossa Sede
             </button>
           </div>
-          <p className="mt-12 text-sm text-gray-400 font-medium uppercase tracking-[0.4em] opacity-80">
-            Estética automotiva de alta performance em Maracás-BA
-          </p>
+          
+          <div className="mt-6 md:mt-12">
+            <p className="text-[10px] md:text-sm text-gray-400 font-medium uppercase tracking-[0.4em] opacity-80">
+              Maracás - Bahia
+            </p>
+          </div>
         </div>
         
-        <div className="absolute bottom-10 animate-float text-accent/80 z-20">
-          <ChevronRight className="rotate-90" size={32} />
+        <div className="absolute bottom-6 animate-float text-accent/80 z-20">
+          <ChevronRight className="rotate-90 w-8 h-8" />
         </div>
       </section>
 
-      {/* Services Section - Add bg-dark relative z-10 to cover the fixed video */}
-      <LazySection id="servicos" className="relative py-32 z-10 bg-dark/95 backdrop-blur-sm border-t border-white/5">
+      {/* Services Section */}
+      <LazySection id="servicos" className="relative py-24 md:py-32 z-10 bg-dark/95 backdrop-blur-sm border-t border-white/5">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Transformação estética com produtos premium e técnica certificada.">
             Nossos Serviços
@@ -453,7 +469,7 @@ function MainLanding() {
       </LazySection>
 
       {/* REELS SECTION */}
-      <LazySection id="reels" className="py-32 relative bg-card/95 z-10 border-t border-white/5">
+      <LazySection id="reels" className="py-24 md:py-32 relative bg-card/95 z-10 border-t border-white/5">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Confira um pouco do nosso trabalho em ação.">
             Nosso Reels
@@ -476,7 +492,7 @@ function MainLanding() {
       </LazySection>
 
       {/* Vönix Products */}
-      <LazySection id="produtos" className="py-32 relative z-10 bg-dark/95 border-t border-white/5">
+      <LazySection id="produtos" className="py-24 md:py-32 relative z-10 bg-dark/95 border-t border-white/5">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Utilizamos exclusivamente o que há de melhor no mercado mundial.">
             Tecnologia Profissional
@@ -510,7 +526,7 @@ function MainLanding() {
       </LazySection>
 
       {/* Gallery Section */}
-      <LazySection className="py-32 relative bg-card/95 z-10 border-t border-white/5">
+      <LazySection className="py-24 md:py-32 relative bg-card/95 z-10 border-t border-white/5">
         <div className="container mx-auto px-4 relative z-10">
           <SectionTitle subtitle="Os resultados que desafiam o tempo estarão em breve disponíveis aqui.">
             Transformações
@@ -531,7 +547,7 @@ function MainLanding() {
       </LazySection>
 
       {/* Location Section */}
-      <LazySection id="localizacao" className="py-32 relative z-10 bg-dark/95 border-t border-white/5">
+      <LazySection id="localizacao" className="py-24 md:py-32 relative z-10 bg-dark/95 border-t border-white/5">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Venha nos visitar em Maracás. Café e paixão automotiva garantidos.">
             Nossa Sede
