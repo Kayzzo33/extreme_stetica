@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { auth, db } from './firebaseConfig';
-import * as firebaseAuth from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { collection, addDoc, query, orderBy, onSnapshot, doc, setDoc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Lock, DollarSign, LogOut, Save, Trash2, Plus, Eye, BarChart3, Image as ImageIcon, Video, MonitorPlay } from 'lucide-react';
@@ -25,7 +26,7 @@ export default function Admin() {
   const [visits, setVisits] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = firebaseAuth.onAuthStateChanged(auth, (u) => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       if (u) {
         loadData();
@@ -70,13 +71,13 @@ export default function Admin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await firebaseAuth.signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       alert("Erro ao logar. Verifique suas credenciais.");
     }
   };
 
-  const handleLogout = () => firebaseAuth.signOut(auth);
+  const handleLogout = () => signOut(auth);
 
   const addTransaction = async (e: React.FormEvent) => {
     e.preventDefault();

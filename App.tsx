@@ -276,15 +276,15 @@ function MainLanding() {
       {/* Hero Section */}
       <section id="home" className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-10 px-6 overflow-hidden">
         
-        {/* VIDEO BACKGROUND */}
+        {/* VIDEO BACKGROUND with proper layering */}
         {heroVideo && (
-          <div className="absolute inset-0 z-0 overflow-hidden">
-            <video 
+          <div className="absolute inset-0 z-0">
+             <video 
               autoPlay 
               loop 
               muted 
               playsInline 
-              className="w-full h-full object-cover blur-[2px] opacity-100 scale-105"
+              className="w-full h-full object-cover blur-[2px] scale-105"
               src={heroVideo}
             />
             {/* Dark Overlay for Text Readability */}
@@ -294,10 +294,10 @@ function MainLanding() {
 
         {/* Fallback Static Background if no video */}
         {!heroVideo && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(30,30,30,0.3),transparent_70%)] pointer-events-none"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(30,30,30,0.3),transparent_70%)] pointer-events-none z-0"></div>
         )}
         
-        <div className="relative z-10 text-center animate-fade-up max-w-4xl mx-auto flex flex-col items-center">
+        <div className="relative z-20 text-center animate-fade-up max-w-4xl mx-auto flex flex-col items-center">
           <img 
             src="https://res.cloudinary.com/dhtmv1kxb/image/upload/v1770597135/Design_sem_nome_55_jw0ktv.png" 
             alt="Extreme Stética Logo"

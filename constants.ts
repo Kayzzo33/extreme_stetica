@@ -29,9 +29,17 @@ export const SERVICES: Service[] = [
     icon: 'UserCheck' 
   },
   { 
+    id: 'combo-detalhe', 
+    name: 'Combo Detalhe Total', 
+    description: 'Higienização interna e externa, limpeza de teto, bancos, tecidos, plásticos e disco de rodas.', 
+    priceRange: 'R$ 210', 
+    duration: '4-5h', 
+    icon: 'Gem' 
+  },
+  { 
     id: 'engine-clean', 
     name: 'Engine Clean', 
-    description: 'Limpeza técnica de motor e aplicação de verniz protetor.', 
+    description: 'Limpeza de motor e aplicação de verniz.', 
     priceRange: 'A partir de R$ 150', 
     duration: '2h', 
     icon: 'Cpu' 
@@ -39,7 +47,7 @@ export const SERVICES: Service[] = [
   { 
     id: 'visao-nova', 
     name: 'Visão Nova', 
-    description: 'Vitrificação de faróis para transparência e proteção.', 
+    description: 'Vitrificação de faróis.', 
     priceRange: 'A partir de R$ 100', 
     duration: '2h', 
     icon: 'Sun' 
@@ -51,14 +59,6 @@ export const SERVICES: Service[] = [
     priceRange: 'A partir de R$ 200', 
     duration: '3-4h', 
     icon: 'Star' 
-  },
-  { 
-    id: 'combo-detalhe', 
-    name: 'Combo Detalhe Total', 
-    description: 'Higienização interna/externa, teto, bancos, tecidos, plásticos (int/ext) e disco de rodas.', 
-    priceRange: 'R$ 210', 
-    duration: '4-5h', 
-    icon: 'Gem' 
   },
   { 
     id: 'polimento-tecnico', 
