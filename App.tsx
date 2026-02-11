@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { 
@@ -15,7 +14,7 @@ import Admin from './Admin';
 
 // --- Components ---
 
-const LazySection = ({ children, id, className = "" }: { children: React.ReactNode, id?: string, className?: string }) => {
+const LazySection = ({ children, id, className = "" }: { children?: React.ReactNode, id?: string, className?: string }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -446,10 +445,6 @@ function MainLanding() {
                   </div>
 
                   <div className="mt-auto pt-6 border-t border-white/5 space-y-4">
-                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] font-bold text-gray-500">
-                      <span>Investimento</span>
-                      <span className="text-white">{service.priceRange}</span>
-                    </div>
                     <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] font-bold text-gray-500">
                       <span>Tempo</span>
                       <span className="text-accent">{service.duration}</span>

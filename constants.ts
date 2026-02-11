@@ -11,7 +11,7 @@ export const SERVICES: Service[] = [
     id: 'combo-essencial', 
     name: 'Combo Essencial', 
     description: 'Limpeza externa, higienização interna com Sintra, descontaminação de rodas.', 
-    priceRange: 'R$ 85', 
+    priceRange: 'Sob consulta', 
     duration: '2h', 
     icon: 'Droplets' 
   },
@@ -19,7 +19,7 @@ export const SERVICES: Service[] = [
     id: 'combo-performance', 
     name: 'Combo Performance', 
     description: 'Higienização externa e interna, renovação de plásticos externa ou interna, disco de rodas.', 
-    priceRange: 'R$ 135', 
+    priceRange: 'Sob consulta', 
     duration: '3h', 
     icon: 'Sparkle' 
   },
@@ -27,7 +27,7 @@ export const SERVICES: Service[] = [
     id: 'combo-couro', 
     name: 'Combo Couro Care', 
     description: 'Higienização interna e externa, limpeza e hidratação de bancos de couro.', 
-    priceRange: 'R$ 110', 
+    priceRange: 'Sob consulta', 
     duration: '3h', 
     icon: 'UserCheck' 
   },
@@ -35,7 +35,7 @@ export const SERVICES: Service[] = [
     id: 'combo-detalhe', 
     name: 'Combo Detalhe Total', 
     description: 'Higienização interna e externa, limpeza de teto, bancos, tecidos, plásticos e disco de rodas.', 
-    priceRange: 'R$ 210', 
+    priceRange: 'Sob consulta', 
     duration: '4-5h', 
     icon: 'Gem' 
   },
@@ -43,7 +43,7 @@ export const SERVICES: Service[] = [
     id: 'engine-clean', 
     name: 'Engine Clean', 
     description: 'Limpeza de motor e aplicação de verniz.', 
-    priceRange: 'A partir de R$ 150', 
+    priceRange: 'Sob consulta', 
     duration: '2h', 
     icon: 'Cpu' 
   },
@@ -51,7 +51,7 @@ export const SERVICES: Service[] = [
     id: 'visao-nova', 
     name: 'Visão Nova', 
     description: 'Vitrificação de faróis.', 
-    priceRange: 'A partir de R$ 100', 
+    priceRange: 'Sob consulta', 
     duration: '2h', 
     icon: 'Sun' 
   },
@@ -59,7 +59,7 @@ export const SERVICES: Service[] = [
     id: 'brilho-premium', 
     name: 'Brilho Premium', 
     description: 'Polimento e aplicação de cera.', 
-    priceRange: 'A partir de R$ 200', 
+    priceRange: 'Sob consulta', 
     duration: '3-4h', 
     icon: 'Star' 
   },
@@ -67,7 +67,7 @@ export const SERVICES: Service[] = [
     id: 'polimento-tecnico', 
     name: 'Polimento Técnico', 
     description: 'Correção de pintura e eliminação de micro-riscos.', 
-    priceRange: 'R$ 300-500', 
+    priceRange: 'Sob consulta', 
     duration: '6-8h', 
     icon: 'Zap' 
   },
