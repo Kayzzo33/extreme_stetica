@@ -1,17 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
 import { auth, db } from './firebaseConfig';
-import * as firebaseAuth from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { collection, addDoc, query, orderBy, onSnapshot, doc, setDoc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Lock, DollarSign, LogOut, Save, Trash2, Plus, Eye, BarChart3, Image as ImageIcon, Video, MonitorPlay } from 'lucide-react';
-import { REELS, PRODUCTS, HERO_VIDEO } from './constants';
+import { Lock, DollarSign, LogOut, Save, Trash2, Plus, Eye, BarChart3, Image as ImageIcon, Video, MonitorPlay, CalendarDays, Smartphone } from 'lucide-react';
+import { REELS, PRODUCTS, HERO_VIDEO, HERO_VIDEO_MOBILE } from './constants';
 
 export default function Admin() {
   const [user, setUser] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'finance' | 'cms'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'finance' | 'cms'>('dashboard');
 
   // Finance State
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -19,14 +18,18 @@ export default function Admin() {
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('income');
 
+  // Bookings State
+  const [bookings, setBookings] = useState<any[]>([]);
+
   // CMS State
   const [cmsReels, setCmsReels] = useState<string[]>([]);
   const [cmsProducts, setCmsProducts] = useState<any[]>([]);
   const [cmsHeroVideo, setCmsHeroVideo] = useState('');
+  const [cmsHeroVideoMobile, setCmsHeroVideoMobile] = useState('');
   const [visits, setVisits] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = firebaseAuth.onAuthStateChanged(auth, (u) => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       if (u) {
         loadData();
@@ -42,6 +45,12 @@ export default function Admin() {
       setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
+    // Load Bookings
+    const bookingsQuery = query(collection(db, "bookings"), orderBy("createdAt", "desc"));
+    onSnapshot(bookingsQuery, (snapshot) => {
+      setBookings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     // Load CMS Data
     const contentRef = doc(db, "site_content", "main");
     onSnapshot(contentRef, (docSnap) => {
@@ -50,12 +59,19 @@ export default function Admin() {
         setCmsReels(data.reels || REELS);
         setCmsProducts(data.products || PRODUCTS);
         setCmsHeroVideo(data.heroVideo || HERO_VIDEO);
+        setCmsHeroVideoMobile(data.heroVideoMobile || HERO_VIDEO_MOBILE);
       } else {
         // Initialize if not exists
-        setDoc(contentRef, { reels: REELS, products: PRODUCTS, heroVideo: HERO_VIDEO });
+        setDoc(contentRef, { 
+          reels: REELS, 
+          products: PRODUCTS, 
+          heroVideo: HERO_VIDEO,
+          heroVideoMobile: HERO_VIDEO_MOBILE
+        });
         setCmsReels(REELS);
         setCmsProducts(PRODUCTS);
         setCmsHeroVideo(HERO_VIDEO);
+        setCmsHeroVideoMobile(HERO_VIDEO_MOBILE);
       }
     });
 
@@ -71,13 +87,13 @@ export default function Admin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await firebaseAuth.signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       alert("Erro ao logar. Verifique suas credenciais.");
     }
   };
 
-  const handleLogout = () => firebaseAuth.signOut(auth);
+  const handleLogout = () => signOut(auth);
 
   const addTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,18 +108,13 @@ export default function Admin() {
     setAmount('');
   };
 
-  const deleteTransaction = async (id: string) => {
-    // In a real app, implementing delete logic would connect to doc(db, "financials", id)
-    // For safety, skipping delete implementation in this prompt but button exists visually
-    alert("Funcionalidade de deletar (Segurança ativada: contate o suporte para limpar dados)");
-  };
-
   const saveCMS = async () => {
     const contentRef = doc(db, "site_content", "main");
     await updateDoc(contentRef, {
       reels: cmsReels,
       products: cmsProducts,
-      heroVideo: cmsHeroVideo
+      heroVideo: cmsHeroVideo,
+      heroVideoMobile: cmsHeroVideoMobile
     });
     alert("Conteúdo atualizado no site!");
   };
@@ -163,6 +174,12 @@ export default function Admin() {
             <BarChart3 size={20} /> Dashboard
           </button>
           <button 
+            onClick={() => setActiveTab('bookings')} 
+            className={`w-full flex items-center gap-3 p-3 rounded-lg transition ${activeTab === 'bookings' ? 'bg-accent text-white' : 'hover:bg-white/5 text-gray-400'}`}
+          >
+            <CalendarDays size={20} /> Agendamentos
+          </button>
+          <button 
             onClick={() => setActiveTab('finance')} 
             className={`w-full flex items-center gap-3 p-3 rounded-lg transition ${activeTab === 'finance' ? 'bg-accent text-white' : 'hover:bg-white/5 text-gray-400'}`}
           >
@@ -196,6 +213,13 @@ export default function Admin() {
               </div>
               <div className="bg-card p-6 rounded-2xl border border-white/5">
                 <div className="flex justify-between items-center mb-4">
+                  <span className="text-gray-400">Agendamentos</span>
+                  <CalendarDays className="text-blue-500" />
+                </div>
+                <p className="text-4xl font-bold">{bookings.length}</p>
+              </div>
+              <div className="bg-card p-6 rounded-2xl border border-white/5">
+                <div className="flex justify-between items-center mb-4">
                   <span className="text-gray-400">Saldo Caixa</span>
                   <DollarSign className="text-green-500" />
                 </div>
@@ -225,6 +249,46 @@ export default function Admin() {
               </ResponsiveContainer>
             </div>
           </div>
+        )}
+
+        {activeTab === 'bookings' && (
+           <div className="space-y-6 animate-fade-up">
+             <h2 className="text-3xl font-bold mb-6">Agendamentos Recebidos</h2>
+             <div className="bg-card rounded-2xl border border-white/5 overflow-hidden">
+               <div className="overflow-x-auto">
+                 <table className="w-full text-left">
+                   <thead className="bg-white/5 text-gray-400">
+                     <tr>
+                       <th className="p-4 whitespace-nowrap">Data/Hora</th>
+                       <th className="p-4">Cliente</th>
+                       <th className="p-4">Contato</th>
+                       <th className="p-4">Veículo</th>
+                       <th className="p-4">Serviço</th>
+                       <th className="p-4">Obs</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-white/5">
+                     {bookings.map(b => (
+                       <tr key={b.id} className="hover:bg-white/5 transition">
+                         <td className="p-4 text-sm text-gray-400 whitespace-nowrap">
+                           {b.data} <br/> 
+                           <span className="text-accent font-bold">{b.horario}</span>
+                         </td>
+                         <td className="p-4 font-medium">{b.nome}</td>
+                         <td className="p-4 text-sm">{b.telefone}</td>
+                         <td className="p-4 text-sm">{b.veiculo} - {b.cor}</td>
+                         <td className="p-4 font-bold text-accent">{b.servico}</td>
+                         <td className="p-4 text-sm text-gray-500 italic max-w-xs truncate">{b.obs}</td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+               {bookings.length === 0 && (
+                 <div className="p-8 text-center text-gray-500 italic">Nenhum agendamento registrado ainda.</div>
+               )}
+             </div>
+           </div>
         )}
 
         {activeTab === 'finance' && (
@@ -306,18 +370,34 @@ export default function Admin() {
             </div>
             
             {/* HERO VIDEO EDIT */}
-            <div className="bg-card p-6 rounded-2xl border border-white/5 border-l-4 border-l-accent">
-              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <MonitorPlay className="text-accent" /> Vídeo de Fundo (Hero Section)
-              </h3>
-              <p className="text-sm text-gray-500 mb-3">Cole o link direto do vídeo (ex: Cloudinary, MP4) para exibir no topo do site.</p>
-              <input 
-                type="text" 
-                className="w-full bg-dark border border-white/10 p-3 rounded-lg text-white text-sm"
-                placeholder="https://..."
-                value={cmsHeroVideo}
-                onChange={(e) => setCmsHeroVideo(e.target.value)}
-              />
+            <div className="bg-card p-6 rounded-2xl border border-white/5 border-l-4 border-l-accent grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <MonitorPlay className="text-accent" /> Vídeo Desktop (Horizontal)
+                </h3>
+                <p className="text-sm text-gray-500 mb-3">Vídeo principal para computadores.</p>
+                <input 
+                  type="text" 
+                  className="w-full bg-dark border border-white/10 p-3 rounded-lg text-white text-sm"
+                  placeholder="https://..."
+                  value={cmsHeroVideo}
+                  onChange={(e) => setCmsHeroVideo(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <Smartphone className="text-accent" /> Vídeo Mobile (Vertical)
+                </h3>
+                <p className="text-sm text-gray-500 mb-3">Vídeo otimizado para celulares.</p>
+                <input 
+                  type="text" 
+                  className="w-full bg-dark border border-white/10 p-3 rounded-lg text-white text-sm"
+                  placeholder="https://..."
+                  value={cmsHeroVideoMobile}
+                  onChange={(e) => setCmsHeroVideoMobile(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="bg-card p-6 rounded-2xl border border-white/5">

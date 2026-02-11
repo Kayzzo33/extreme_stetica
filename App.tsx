@@ -7,13 +7,42 @@ import {
   Cpu, X, ChevronRight, CheckCircle, AlertCircle, Info, Play
 } from 'lucide-react';
 import { format, isSaturday } from 'date-fns';
-import { doc, getDoc, updateDoc, increment, setDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, increment, setDoc, addDoc, collection } from "firebase/firestore";
 import { db } from './firebaseConfig';
-import { SERVICES, PRODUCTS as DEFAULT_PRODUCTS, WORKING_HOURS, CONTACT_INFO, REELS as DEFAULT_REELS, HERO_VIDEO as DEFAULT_HERO_VIDEO } from './constants';
+import { SERVICES, PRODUCTS as DEFAULT_PRODUCTS, WORKING_HOURS, CONTACT_INFO, REELS as DEFAULT_REELS, HERO_VIDEO as DEFAULT_HERO_VIDEO, HERO_VIDEO_MOBILE as DEFAULT_HERO_VIDEO_MOBILE } from './constants';
 import { Service, Booking, Product } from './types';
 import Admin from './Admin';
 
 // --- Components ---
+
+const LazySection = ({ children, id, className = "" }: { children: React.ReactNode, id?: string, className?: string }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} id={id} className={`min-h-[100px] ${className}`}>
+      {isVisible ? children : <div className="h-20 w-full flex items-center justify-center"><div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin"></div></div>}
+    </div>
+  );
+};
 
 const SectionTitle = ({ children, subtitle }: { children?: React.ReactNode, subtitle?: string }) => (
   <div className="mb-12 text-center px-4 relative z-10">
@@ -49,6 +78,24 @@ interface ReelCardProps {
 const ReelCard: React.FC<ReelCardProps> = ({ url, index, playingIndex, setPlayingIndex }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isPlaying = playingIndex === index;
+  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Lazy Load Logic for individual reels
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -70,18 +117,22 @@ const ReelCard: React.FC<ReelCardProps> = ({ url, index, playingIndex, setPlayin
   };
 
   return (
-    <div className="aspect-[9/16] relative rounded-2xl overflow-hidden glass border border-white/5 group shadow-lg">
-      <video
-        ref={videoRef}
-        src={url}
-        className="w-full h-full object-cover"
-        loop
-        playsInline
-        controls={isPlaying} 
-        preload="metadata"
-      />
+    <div ref={containerRef} className="aspect-[9/16] relative rounded-2xl overflow-hidden glass border border-white/5 group shadow-lg">
+      {isVisible ? (
+        <video
+          ref={videoRef}
+          src={url}
+          className="w-full h-full object-cover"
+          loop
+          playsInline
+          controls={isPlaying} 
+          preload="metadata"
+        />
+      ) : (
+        <div className="w-full h-full bg-gray-900 animate-pulse"></div>
+      )}
       
-      {!isPlaying && (
+      {!isPlaying && isVisible && (
         <div 
           className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer play-overlay"
           onClick={togglePlay}
@@ -112,11 +163,13 @@ function MainLanding() {
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [playingReel, setPlayingReel] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   // Data from CMS
   const [reels, setReels] = useState<string[]>(DEFAULT_REELS);
   const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
   const [heroVideo, setHeroVideo] = useState<string>(DEFAULT_HERO_VIDEO);
+  const [heroVideoMobile, setHeroVideoMobile] = useState<string>(DEFAULT_HERO_VIDEO_MOBILE);
 
   // Booking Form State
   const [formDate, setFormDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -126,6 +179,14 @@ function MainLanding() {
   const [formVehicle, setFormVehicle] = useState('');
   const [formColor, setFormColor] = useState('');
   const [formObs, setFormObs] = useState('');
+
+  // Detect Mobile
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize(); // Initial check
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch CMS Data and Log Visit
   useEffect(() => {
@@ -148,6 +209,7 @@ function MainLanding() {
           if (data.reels) setReels(data.reels);
           if (data.products) setProducts(data.products);
           if (data.heroVideo) setHeroVideo(data.heroVideo);
+          if (data.heroVideoMobile) setHeroVideoMobile(data.heroVideoMobile);
         }
       } catch (error) {
         console.log("Using default data (offline or config issue)");
@@ -172,7 +234,7 @@ function MainLanding() {
     }
   };
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTime || !formName || !formPhone || !formVehicle) {
       setToast({ message: 'Preencha todos os campos obrigatórios!', type: 'error' });
@@ -194,18 +256,32 @@ function MainLanding() {
       status: 'pendente'
     };
 
-    setTimeout(() => {
-      setIsLoading(false);
-      setToast({ message: 'Redirecionando para o WhatsApp...', type: 'success' });
-      
-      const message = `Olá, EXTREME STÉTICA! 🚗\nGostaria de agendar o serviço:\n📋 Serviço: ${newBooking.servico}\n📅 Data: ${newBooking.data}\n🕐 Horário: ${newBooking.horario}\n👤 Cliente:\nNome: ${newBooking.nome}\nTelefone: ${newBooking.telefone}\nVeículo: ${newBooking.veiculo} - ${newBooking.cor}\n💬 Observações: ${newBooking.obs}\nAguardo confirmação!`;
+    try {
+      // 1. Save to Database for Admin View
+      await addDoc(collection(db, "bookings"), {
+        ...newBooking,
+        createdAt: new Date().toISOString()
+      });
 
-      const encoded = encodeURIComponent(message);
-      window.open(`https://wa.me/5573988176142?text=${encoded}`, '_blank');
+      // 2. Redirect to WhatsApp
+      setTimeout(() => {
+        setIsLoading(false);
+        setToast({ message: 'Agendamento registrado! Redirecionando para o WhatsApp...', type: 'success' });
+        
+        const message = `Olá, EXTREME STÉTICA! 🚗\nGostaria de agendar o serviço:\n📋 Serviço: ${newBooking.servico}\n📅 Data: ${newBooking.data}\n🕐 Horário: ${newBooking.horario}\n👤 Cliente:\nNome: ${newBooking.nome}\nTelefone: ${newBooking.telefone}\nVeículo: ${newBooking.veiculo} - ${newBooking.cor}\n💬 Observações: ${newBooking.obs}\nAguardo confirmação!`;
+
+        const encoded = encodeURIComponent(message);
+        window.open(`https://wa.me/5573988176142?text=${encoded}`, '_blank');
+        
+        setActiveModal(null);
+        resetForm();
+      }, 1500);
       
-      setActiveModal(null);
-      resetForm();
-    }, 1500);
+    } catch (error) {
+      console.error("Error saving booking:", error);
+      setIsLoading(false);
+      setToast({ message: 'Erro ao salvar. Tente novamente ou chame no WhatsApp.', type: 'error' });
+    }
   };
 
   const resetForm = () => {
@@ -251,16 +327,16 @@ function MainLanding() {
       {/* Background Effect */}
       <div className="fixed inset-0 z-0 bg-animated opacity-20 pointer-events-none"></div>
       
-      {/* Emergency Button */}
+      {/* Emergency Button - Moved to TOP on Mobile */}
       <a 
         href={`https://wa.me/5573988176142?text=${encodeURIComponent('🚨 ATENDIMENTO URGENTE!\nPreciso de um serviço com prioridade.\nAguardo retorno imediato.')}`}
         target="_blank"
-        className="fixed bottom-6 left-6 z-50 md:top-6 md:right-6 md:left-auto md:bottom-auto group"
+        className="fixed top-4 right-4 z-50 md:top-auto md:right-6 md:bottom-6 md:left-auto group"
       >
-        <div className="flex items-center gap-2 px-5 py-3 rounded-full bg-accent text-white font-bold shadow-[0_0_25px_#DC143C] animate-pulse-fast hover:scale-105 transition-transform">
+        <div className="flex items-center gap-2 px-3 py-2 md:px-5 md:py-3 rounded-full bg-accent text-white font-bold shadow-[0_0_25px_#DC143C] animate-pulse-fast hover:scale-105 transition-transform text-xs md:text-base">
           <span className="hidden md:inline">Atendimento Urgente</span>
           <span className="md:hidden">Urgência</span>
-          <AlertCircle size={20} />
+          <AlertCircle size={16} className="md:w-5 md:h-5" />
         </div>
       </a>
 
@@ -276,25 +352,24 @@ function MainLanding() {
       {/* Hero Section */}
       <section id="home" className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-10 px-6 overflow-hidden">
         
-        {/* VIDEO BACKGROUND */}
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          {heroVideo ? (
-             <video 
+        {/* PARALLAX VIDEO BACKGROUND */}
+        {/* We use 'fixed' position to create the parallax effect where the video stays and content scrolls over it */}
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+           <video 
+              key={isMobile ? 'mobile' : 'desktop'} // Key forces re-render when switching view modes
               autoPlay 
               loop 
               muted 
               playsInline 
-              className="absolute top-1/2 left-1/2 w-full h-full object-cover -translate-x-1/2 -translate-y-1/2 scale-105 blur-[2px]"
-              src={heroVideo}
+              className="absolute top-1/2 left-1/2 w-full h-full object-cover -translate-x-1/2 -translate-y-1/2"
+              src={isMobile && heroVideoMobile ? heroVideoMobile : heroVideo}
+              style={{ filter: 'brightness(0.4) blur(1px)' }} // Added brightness filter for better text contrast
             />
-          ) : (
-            <div className="w-full h-full bg-[radial-gradient(circle_at_center,rgba(30,30,30,0.3),transparent_70%)]"></div>
-          )}
-           {/* Dark Overlay for Text Readability */}
-           <div className="absolute inset-0 bg-black/70 z-10"></div>
+           {/* Gradient Overlay for Text Readability */}
+           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-dark z-10"></div>
         </div>
         
-        <div className="relative z-20 text-center animate-fade-up max-w-4xl mx-auto flex flex-col items-center">
+        <div className="relative z-20 text-center animate-fade-up max-w-4xl mx-auto flex flex-col items-center mt-12 md:mt-0">
           <img 
             src="https://res.cloudinary.com/dhtmv1kxb/image/upload/v1770597135/Design_sem_nome_55_jw0ktv.png" 
             alt="Extreme Stética Logo"
@@ -330,8 +405,8 @@ function MainLanding() {
         </div>
       </section>
 
-      {/* Services Section */}
-      <section id="servicos" className="relative py-32 z-10">
+      {/* Services Section - Add bg-dark relative z-10 to cover the fixed video */}
+      <LazySection id="servicos" className="relative py-32 z-10 bg-dark/95 backdrop-blur-sm border-t border-white/5">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Transformação estética com produtos premium e técnica certificada.">
             Nossos Serviços
@@ -375,10 +450,10 @@ function MainLanding() {
             })}
           </div>
         </div>
-      </section>
+      </LazySection>
 
       {/* REELS SECTION */}
-      <section id="reels" className="py-32 relative bg-card/30">
+      <LazySection id="reels" className="py-32 relative bg-card/95 z-10 border-t border-white/5">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Confira um pouco do nosso trabalho em ação.">
             Nosso Reels
@@ -398,10 +473,10 @@ function MainLanding() {
             ))}
           </div>
         </div>
-      </section>
+      </LazySection>
 
       {/* Vönix Products */}
-      <section id="produtos" className="py-32">
+      <LazySection id="produtos" className="py-32 relative z-10 bg-dark/95 border-t border-white/5">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Utilizamos exclusivamente o que há de melhor no mercado mundial.">
             Tecnologia Profissional
@@ -417,7 +492,7 @@ function MainLanding() {
             {products.map((prod) => (
               <div key={prod.id} className="group glass overflow-hidden rounded-[32px] transition-all hover:-translate-y-2 border-white/5 hover:border-accent/30 shadow-2xl">
                 <div className="h-56 overflow-hidden relative">
-                  <img src={prod.image} alt={prod.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-100 grayscale group-hover:grayscale-0" />
+                  <img loading="lazy" src={prod.image} alt={prod.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-100 grayscale group-hover:grayscale-0" />
                   {prod.isProfessional && (
                     <div className="absolute top-5 right-5 bg-accent text-[9px] font-black uppercase px-3 py-1.5 rounded-lg shadow-xl tracking-widest">
                       Vönix Tech
@@ -432,10 +507,10 @@ function MainLanding() {
             ))}
           </div>
         </div>
-      </section>
+      </LazySection>
 
       {/* Gallery Section */}
-      <section className="py-32 relative bg-card/30">
+      <LazySection className="py-32 relative bg-card/95 z-10 border-t border-white/5">
         <div className="container mx-auto px-4 relative z-10">
           <SectionTitle subtitle="Os resultados que desafiam o tempo estarão em breve disponíveis aqui.">
             Transformações
@@ -453,10 +528,10 @@ function MainLanding() {
           </div>
           <p className="text-center mt-12 text-xs text-gray-800 uppercase font-black tracking-[0.4em] italic animate-pulse">Inovação e Perfeição</p>
         </div>
-      </section>
+      </LazySection>
 
       {/* Location Section */}
-      <section id="localizacao" className="py-32">
+      <LazySection id="localizacao" className="py-32 relative z-10 bg-dark/95 border-t border-white/5">
         <div className="container mx-auto px-4">
           <SectionTitle subtitle="Venha nos visitar em Maracás. Café e paixão automotiva garantidos.">
             Nossa Sede
@@ -465,6 +540,7 @@ function MainLanding() {
             <div className="relative rounded-[40px] overflow-hidden shadow-2xl group border border-white/10 h-[500px] md:h-[600px]">
               <div className="w-full h-full relative">
                 <img 
+                  loading="lazy"
                   src={CONTACT_INFO.facadeImage} 
                   alt="Fachada Extreme Stética" 
                   className="w-full h-full object-cover object-bottom grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 transform group-hover:scale-105"
@@ -514,10 +590,10 @@ function MainLanding() {
             </div>
           </div>
         </div>
-      </section>
+      </LazySection>
 
       {/* Footer */}
-      <footer className="bg-black py-20 border-t border-white/5 relative overflow-hidden">
+      <footer className="bg-black py-20 border-t border-white/5 relative overflow-hidden z-10">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] text-[12rem] font-display font-black pointer-events-none tracking-tighter">
           EXTREME
         </div>
