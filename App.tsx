@@ -3,9 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { 
   Calendar, Clock, Car, MapPin, Phone, Instagram, Shield, Sparkles, 
   Droplets, Zap, ShieldCheck, Gem, Sun, Layers, Star, UserCheck, 
-  Cpu, X, ChevronRight, CheckCircle, AlertCircle, Info, Play
+  Cpu, X, ChevronRight, CheckCircle, AlertCircle, Info, Play, Camera
 } from 'lucide-react';
-import { format, isSaturday } from 'date-fns';
+import { format, isSaturday, isSunday } from 'date-fns';
 import { doc, getDoc, updateDoc, increment, setDoc, addDoc, collection } from "firebase/firestore";
 import { db } from './firebaseConfig';
 import { SERVICES, PRODUCTS as DEFAULT_PRODUCTS, WORKING_HOURS, CONTACT_INFO, REELS as DEFAULT_REELS, HERO_VIDEO as DEFAULT_HERO_VIDEO, HERO_VIDEO_MOBILE as DEFAULT_HERO_VIDEO_MOBILE, DEFAULT_HERO_OPACITY, DEFAULT_HERO_BLUR } from './constants';
@@ -230,6 +230,10 @@ function MainLanding() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSunday(parseDate(formDate))) {
+      setToast({ message: 'Não funcionamos aos domingos. Selecione outra data.', type: 'error' });
+      return;
+    }
     if (!formTime || !formName || !formPhone || !formVehicle) {
       setToast({ message: 'Preencha todos os campos obrigatórios!', type: 'error' });
       return;
@@ -531,7 +535,7 @@ function MainLanding() {
               <div key={i} className="aspect-square glass rounded-[32px] flex items-center justify-center border border-white/5 group hover:border-accent/20 transition-all duration-500 shadow-xl overflow-hidden relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                  <div className="text-center px-4 relative z-10">
-                   <Sparkles className="text-accent mx-auto mb-4 opacity-20 group-hover:opacity-60 group-hover:scale-110 transition-all duration-500" size={40} />
+                   <Camera className="text-accent mx-auto mb-4 opacity-20 group-hover:opacity-60 group-hover:scale-110 transition-all duration-500" size={40} />
                    <span className="text-[11px] md:text-sm font-black uppercase tracking-[0.4em] text-white/10 group-hover:text-white/40 transition-colors italic">Em breve</span>
                  </div>
               </div>
@@ -666,17 +670,24 @@ function MainLanding() {
                 </div>
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 ml-1 italic">Horário</label>
-                  <select 
-                    value={formTime}
-                    onChange={(e) => setFormTime(e.target.value)}
-                    className="w-full bg-dark/50 border border-white/5 p-5 rounded-2xl focus:ring-2 focus:ring-accent transition-all appearance-none font-bold text-white outline-none shadow-inner"
-                    required
-                  >
-                    <option value="">Selecione...</option>
-                    {(isSaturday(parseDate(formDate)) ? WORKING_HOURS.saturday : WORKING_HOURS.weekday).map(h => (
-                      <option key={h} value={h}>{h}</option>
-                    ))}
-                  </select>
+                  {isSunday(parseDate(formDate)) ? (
+                     <div className="w-full bg-red-500/10 border border-red-500/20 p-5 rounded-2xl text-red-500 font-bold text-sm flex items-center gap-3">
+                       <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                       Não funcionamos aos Domingos
+                     </div>
+                  ) : (
+                    <select 
+                      value={formTime}
+                      onChange={(e) => setFormTime(e.target.value)}
+                      className="w-full bg-dark/50 border border-white/5 p-5 rounded-2xl focus:ring-2 focus:ring-accent transition-all appearance-none font-bold text-white outline-none shadow-inner"
+                      required
+                    >
+                      <option value="">Selecione...</option>
+                      {(isSaturday(parseDate(formDate)) ? WORKING_HOURS.saturday : WORKING_HOURS.weekday).map(h => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 
