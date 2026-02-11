@@ -1,19 +1,81 @@
 
 import { Service, Product } from './types';
 
+export const HERO_VIDEO = "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770769204/WhatsApp_Video_2026-02-10_at_21.14.29_nfev9d.mp4";
+
 export const SERVICES: Service[] = [
-  { id: '1', name: 'Lavagem Detalhada Externa', description: 'Foco total na remoção de contaminantes e brilho externo.', priceRange: 'R$ 80-120', duration: '2h', icon: 'Droplets' },
-  { id: '2', name: 'Lavagem Completa', description: 'Limpeza minuciosa externa e higienização interna básica.', priceRange: 'R$ 150-200', duration: '4h', icon: 'Car' },
-  { id: '3', name: 'Higienização Interna Profunda', description: 'Remoção de ácaros, bactérias e manchas em estofados.', priceRange: 'R$ 180-250', duration: '5h', icon: 'Sparkle' },
-  { id: '4', name: 'Polimento Técnico', description: 'Correção de verniz e eliminação de micro-riscos.', priceRange: 'R$ 300-500', duration: '6-8h', icon: 'Zap' },
-  { id: '5', name: 'Polimento + Cristalização', description: 'Proteção extra com selante de alto brilho.', priceRange: 'R$ 450-700', duration: '1 dia', icon: 'ShieldCheck' },
-  { id: '6', name: 'Vitrificação de Pintura', description: 'O ápice da proteção cerâmica com dureza 9H.', priceRange: 'R$ 800-1.500', duration: '1-2 dias', icon: 'Gem' },
-  { id: '7', name: 'Vitrificação de Faróis', description: 'Restauração da transparência e proteção UV duradoura.', priceRange: 'R$ 250-400', duration: '3h', icon: 'Sun' },
-  { id: '8', name: 'Revitalização de Plásticos', description: 'Devolve a cor original e protege plásticos ressecados.', priceRange: 'R$ 150-250', duration: '2h', icon: 'Layers' },
-  { id: '9', name: 'Enceramento Premium', description: 'Aplicação de ceras de carnaúba pura para efeito show car.', priceRange: 'R$ 200-350', duration: '3h', icon: 'Star' },
-  { id: '10', name: 'Restauração de Couro', description: 'Limpeza técnica e hidratação profunda de assentos.', priceRange: 'R$ 300-600', duration: '4h', icon: 'UserCheck' },
-  { id: '11', name: 'Blindagem de Pintura (PPF)', description: 'Película de proteção ultra resistente contra impactos.', priceRange: 'Sob consulta', duration: 'Consultar', icon: 'Shield' },
-  { id: '12', name: 'Tratamento Cerâmico', description: 'Proteção integral com nanotecnologia de ponta.', priceRange: 'R$ 1.200-2.000', duration: '2 dias', icon: 'Cpu' },
+  { 
+    id: 'combo-essencial', 
+    name: 'Combo Essencial', 
+    description: 'Limpeza externa, higienização interna com Sintra, descontaminação de rodas.', 
+    priceRange: 'R$ 85', 
+    duration: '2h', 
+    icon: 'Droplets' 
+  },
+  { 
+    id: 'combo-performance', 
+    name: 'Combo Performance', 
+    description: 'Higienização externa e interna, renovação de plásticos externa ou interna, disco de rodas.', 
+    priceRange: 'R$ 135', 
+    duration: '3h', 
+    icon: 'Sparkle' 
+  },
+  { 
+    id: 'combo-couro', 
+    name: 'Combo Couro Care', 
+    description: 'Higienização interna e externa, limpeza e hidratação de bancos de couro.', 
+    priceRange: 'R$ 110', 
+    duration: '3h', 
+    icon: 'UserCheck' 
+  },
+  { 
+    id: 'engine-clean', 
+    name: 'Engine Clean', 
+    description: 'Limpeza técnica de motor e aplicação de verniz protetor.', 
+    priceRange: 'A partir de R$ 150', 
+    duration: '2h', 
+    icon: 'Cpu' 
+  },
+  { 
+    id: 'visao-nova', 
+    name: 'Visão Nova', 
+    description: 'Vitrificação de faróis para transparência e proteção.', 
+    priceRange: 'A partir de R$ 100', 
+    duration: '2h', 
+    icon: 'Sun' 
+  },
+  { 
+    id: 'brilho-premium', 
+    name: 'Brilho Premium', 
+    description: 'Polimento e aplicação de cera.', 
+    priceRange: 'A partir de R$ 200', 
+    duration: '3-4h', 
+    icon: 'Star' 
+  },
+  { 
+    id: 'combo-detalhe', 
+    name: 'Combo Detalhe Total', 
+    description: 'Higienização interna/externa, teto, bancos, tecidos, plásticos (int/ext) e disco de rodas.', 
+    priceRange: 'R$ 210', 
+    duration: '4-5h', 
+    icon: 'Gem' 
+  },
+  { 
+    id: 'polimento-tecnico', 
+    name: 'Polimento Técnico', 
+    description: 'Correção de pintura e eliminação de micro-riscos.', 
+    priceRange: 'R$ 300-500', 
+    duration: '6-8h', 
+    icon: 'Zap' 
+  },
+  { 
+    id: 'ppf', 
+    name: 'Blindagem de Pintura (PPF)', 
+    description: 'Película de proteção ultra resistente contra impactos.', 
+    priceRange: 'Sob consulta', 
+    duration: 'Consultar', 
+    icon: 'Shield' 
+  },
 ];
 
 export const PRODUCTS: Product[] = [
@@ -28,7 +90,7 @@ export const REELS = [
   "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592361/WhatsApp_Video_2026-01-28_at_09.26.04_lp19nb.mp4",
   "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592337/WhatsApp_Video_2026-01-30_at_13.14.32_c9n5md.mp4",
   "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592346/WhatsApp_Video_2026-02-04_at_13.01.42_oeotqg.mp4",
-  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592346/WhatsApp_Video_2026-02-04_at_13.01.42_oeotqg.mp4", // Duplicado intencionalmente conforme pedido
+  "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592346/WhatsApp_Video_2026-02-04_at_13.01.42_oeotqg.mp4", 
   "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592341/WhatsApp_Video_2026-01-31_at_19.23.42_y0s42v.mp4",
   "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592338/WhatsApp_Video_2026-01-31_at_15.53.20_b8jhng.mp4",
   "https://res.cloudinary.com/dhtmv1kxb/video/upload/v1770592336/WhatsApp_Video_2026-02-07_at_20.11.09_iuvvzs.mp4",

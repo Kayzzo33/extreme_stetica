@@ -9,7 +9,7 @@ import {
 import { format, isSaturday } from 'date-fns';
 import { doc, getDoc, updateDoc, increment, setDoc } from "firebase/firestore";
 import { db } from './firebaseConfig';
-import { SERVICES, PRODUCTS as DEFAULT_PRODUCTS, WORKING_HOURS, CONTACT_INFO, REELS as DEFAULT_REELS } from './constants';
+import { SERVICES, PRODUCTS as DEFAULT_PRODUCTS, WORKING_HOURS, CONTACT_INFO, REELS as DEFAULT_REELS, HERO_VIDEO as DEFAULT_HERO_VIDEO } from './constants';
 import { Service, Booking, Product } from './types';
 import Admin from './Admin';
 
@@ -116,6 +116,7 @@ function MainLanding() {
   // Data from CMS
   const [reels, setReels] = useState<string[]>(DEFAULT_REELS);
   const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
+  const [heroVideo, setHeroVideo] = useState<string>(DEFAULT_HERO_VIDEO);
 
   // Booking Form State
   const [formDate, setFormDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -146,6 +147,7 @@ function MainLanding() {
           const data = docSnap.data();
           if (data.reels) setReels(data.reels);
           if (data.products) setProducts(data.products);
+          if (data.heroVideo) setHeroVideo(data.heroVideo);
         }
       } catch (error) {
         console.log("Using default data (offline or config issue)");
@@ -273,7 +275,27 @@ function MainLanding() {
 
       {/* Hero Section */}
       <section id="home" className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-10 px-6 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(30,30,30,0.3),transparent_70%)] pointer-events-none"></div>
+        
+        {/* VIDEO BACKGROUND */}
+        {heroVideo && (
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            <video 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              className="w-full h-full object-cover blur-[2px] opacity-100 scale-105"
+              src={heroVideo}
+            />
+            {/* Dark Overlay for Text Readability */}
+            <div className="absolute inset-0 bg-black/70 z-10"></div>
+          </div>
+        )}
+
+        {/* Fallback Static Background if no video */}
+        {!heroVideo && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(30,30,30,0.3),transparent_70%)] pointer-events-none"></div>
+        )}
         
         <div className="relative z-10 text-center animate-fade-up max-w-4xl mx-auto flex flex-col items-center">
           <img 
@@ -282,31 +304,31 @@ function MainLanding() {
             className="w-full max-w-[500px] h-auto mb-8 drop-shadow-[0_0_30px_rgba(220,20,60,0.3)] hover:scale-105 transition-transform duration-500"
           />
           
-          <p className="text-xl md:text-2xl text-gray-400 font-light mb-10 max-w-2xl mx-auto uppercase tracking-widest">
+          <p className="text-xl md:text-2xl text-gray-200 font-light mb-10 max-w-2xl mx-auto uppercase tracking-widest text-glow">
             Tecnologia de ponta encontra a <span className="text-white font-bold border-b-2 border-accent">arte automotiva</span>
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <button 
               type="button"
               onClick={() => scrollToSection('servicos')}
-              className="w-full sm:w-auto px-10 py-5 bg-accent rounded-2xl font-bold text-xl btn-glow transition-all hover:-translate-y-1 hover:brightness-110 active:scale-95"
+              className="w-full sm:w-auto px-10 py-5 bg-accent rounded-2xl font-bold text-xl btn-glow transition-all hover:-translate-y-1 hover:brightness-110 active:scale-95 shadow-2xl"
             >
               Agendar Serviço
             </button>
             <button 
               type="button"
               onClick={() => scrollToSection('localizacao')}
-              className="w-full sm:w-auto px-10 py-5 glass rounded-2xl font-bold text-xl hover:bg-white/10 transition-all active:scale-95"
+              className="w-full sm:w-auto px-10 py-5 glass rounded-2xl font-bold text-xl hover:bg-white/10 transition-all active:scale-95 backdrop-blur-md"
             >
               Nossa Sede
             </button>
           </div>
-          <p className="mt-12 text-sm text-gray-600 font-medium uppercase tracking-[0.4em] opacity-80">
+          <p className="mt-12 text-sm text-gray-400 font-medium uppercase tracking-[0.4em] opacity-80">
             Estética automotiva de alta performance em Maracás-BA
           </p>
         </div>
         
-        <div className="absolute bottom-10 animate-float text-accent/50">
+        <div className="absolute bottom-10 animate-float text-accent/80 z-20">
           <ChevronRight className="rotate-90" size={32} />
         </div>
       </section>

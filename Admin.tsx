@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { auth, db } from './firebaseConfig';
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
+import * as firebaseAuth from "firebase/auth";
 import { collection, addDoc, query, orderBy, onSnapshot, doc, setDoc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Lock, DollarSign, LogOut, Save, Trash2, Plus, Eye, BarChart3, Image as ImageIcon, Video } from 'lucide-react';
-import { REELS, PRODUCTS } from './constants';
+import { Lock, DollarSign, LogOut, Save, Trash2, Plus, Eye, BarChart3, Image as ImageIcon, Video, MonitorPlay } from 'lucide-react';
+import { REELS, PRODUCTS, HERO_VIDEO } from './constants';
 
 export default function Admin() {
   const [user, setUser] = useState<any>(null);
@@ -22,10 +21,11 @@ export default function Admin() {
   // CMS State
   const [cmsReels, setCmsReels] = useState<string[]>([]);
   const [cmsProducts, setCmsProducts] = useState<any[]>([]);
+  const [cmsHeroVideo, setCmsHeroVideo] = useState('');
   const [visits, setVisits] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = firebaseAuth.onAuthStateChanged(auth, (u) => {
       setUser(u);
       if (u) {
         loadData();
@@ -48,11 +48,13 @@ export default function Admin() {
         const data = docSnap.data();
         setCmsReels(data.reels || REELS);
         setCmsProducts(data.products || PRODUCTS);
+        setCmsHeroVideo(data.heroVideo || HERO_VIDEO);
       } else {
         // Initialize if not exists
-        setDoc(contentRef, { reels: REELS, products: PRODUCTS });
+        setDoc(contentRef, { reels: REELS, products: PRODUCTS, heroVideo: HERO_VIDEO });
         setCmsReels(REELS);
         setCmsProducts(PRODUCTS);
+        setCmsHeroVideo(HERO_VIDEO);
       }
     });
 
@@ -68,13 +70,13 @@ export default function Admin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await firebaseAuth.signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       alert("Erro ao logar. Verifique suas credenciais.");
     }
   };
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = () => firebaseAuth.signOut(auth);
 
   const addTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +101,8 @@ export default function Admin() {
     const contentRef = doc(db, "site_content", "main");
     await updateDoc(contentRef, {
       reels: cmsReels,
-      products: cmsProducts
+      products: cmsProducts,
+      heroVideo: cmsHeroVideo
     });
     alert("Conteúdo atualizado no site!");
   };
@@ -299,6 +302,21 @@ export default function Admin() {
               <button onClick={saveCMS} className="bg-accent text-white px-6 py-3 rounded-lg font-bold hover:bg-accent/80 flex items-center gap-2 shadow-[0_0_15px_#DC143C]">
                 <Save size={20} /> Salvar Alterações
               </button>
+            </div>
+            
+            {/* HERO VIDEO EDIT */}
+            <div className="bg-card p-6 rounded-2xl border border-white/5 border-l-4 border-l-accent">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <MonitorPlay className="text-accent" /> Vídeo de Fundo (Hero Section)
+              </h3>
+              <p className="text-sm text-gray-500 mb-3">Cole o link direto do vídeo (ex: Cloudinary, MP4) para exibir no topo do site.</p>
+              <input 
+                type="text" 
+                className="w-full bg-dark border border-white/10 p-3 rounded-lg text-white text-sm"
+                placeholder="https://..."
+                value={cmsHeroVideo}
+                onChange={(e) => setCmsHeroVideo(e.target.value)}
+              />
             </div>
 
             <div className="bg-card p-6 rounded-2xl border border-white/5">
