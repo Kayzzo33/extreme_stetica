@@ -609,11 +609,11 @@ function MainLanding() {
 
       {/* Footer */}
       <footer className="bg-black py-20 border-t border-white/5 relative overflow-hidden z-10">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] text-[12rem] font-display font-black pointer-events-none tracking-tighter">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] text-[4rem] md:text-[12rem] font-display font-black pointer-events-none tracking-tighter select-none w-full text-center">
           EXTREME
         </div>
         <div className="container mx-auto px-4 text-center relative z-10">
-          <h2 className="text-3xl font-display font-black tracking-[0.3em] italic mb-8 uppercase">
+          <h2 className="text-2xl md:text-3xl font-display font-black tracking-[0.15em] md:tracking-[0.3em] italic mb-8 uppercase px-2 break-words">
             EXTREME<span className="text-accent">STÉTICA</span>
           </h2>
           <div className="flex flex-wrap justify-center gap-8 mb-12 text-xs font-black uppercase tracking-[0.2em] text-gray-600">
