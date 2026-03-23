@@ -155,6 +155,32 @@ const parseDate = (dateString: string) => {
   return new Date(year, month - 1, day);
 };
 
+const getAvailableHours = (dateString: string) => {
+  if (!dateString) return [];
+  const selectedDate = parseDate(dateString);
+  const hours = isSaturday(selectedDate) ? WORKING_HOURS.saturday : WORKING_HOURS.weekday;
+  
+  const today = new Date();
+  const isToday = format(selectedDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+  
+  if (isToday) {
+    const currentHour = today.getHours();
+    const currentMinute = today.getMinutes();
+    
+    return hours.filter(time => {
+      const [hourStr, minuteStr] = time.split(':');
+      const hour = parseInt(hourStr, 10);
+      const minute = parseInt(minuteStr, 10);
+      
+      if (hour > currentHour) return true;
+      if (hour === currentHour && minute > currentMinute) return true;
+      return false;
+    });
+  }
+  
+  return hours;
+};
+
 // --- Main Page Logic ---
 
 function MainLanding() {
@@ -184,14 +210,38 @@ function MainLanding() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Log Visit
-        const analyticsRef = doc(db, "analytics", "stats");
-        try {
-          await updateDoc(analyticsRef, { visits: increment(1) });
-        } catch (e) {
-          // If doc doesn't exist yet
-          await setDoc(analyticsRef, { visits: 1 }, { merge: true });
+        // --- LOGIC VISIT COUNTER (30 MIN SESSION) ---
+        const SESSION_KEY = 'extreme_stetica_last_visit';
+        const SESSION_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
+        
+        const now = Date.now();
+        const lastVisit = localStorage.getItem(SESSION_KEY);
+        let shouldCountVisit = false;
+
+        if (!lastVisit) {
+          // First time visitor or storage cleared
+          shouldCountVisit = true;
+        } else {
+          const lastVisitTime = parseInt(lastVisit, 10);
+          // If time passed since last visit is greater than 30 mins, count as new visit
+          if (now - lastVisitTime > SESSION_DURATION) {
+            shouldCountVisit = true;
+          }
         }
+
+        if (shouldCountVisit) {
+          const analyticsRef = doc(db, "analytics", "stats");
+          try {
+            await updateDoc(analyticsRef, { visits: increment(1) });
+          } catch (e) {
+            // If doc doesn't exist yet
+            await setDoc(analyticsRef, { visits: 1 }, { merge: true });
+          }
+        }
+
+        // Always update the timestamp to keep the session "alive" while the user is active/refreshing
+        localStorage.setItem(SESSION_KEY, now.toString());
+        // ---------------------------------------------
 
         // Fetch Content
         const contentRef = doc(db, "site_content", "main");
@@ -238,6 +288,10 @@ function MainLanding() {
       setToast({ message: 'Preencha todos os campos obrigatórios!', type: 'error' });
       return;
     }
+    if (!getAvailableHours(formDate).includes(formTime)) {
+      setToast({ message: 'O horário selecionado não está mais disponível.', type: 'error' });
+      return;
+    }
 
     setIsLoading(true);
 
@@ -260,26 +314,25 @@ function MainLanding() {
         ...newBooking,
         createdAt: new Date().toISOString()
       });
-
-      // 2. Redirect to WhatsApp
-      setTimeout(() => {
-        setIsLoading(false);
-        setToast({ message: 'Agendamento registrado! Redirecionando para o WhatsApp...', type: 'success' });
-        
-        const message = `Olá, EXTREME STÉTICA! 🚗\nGostaria de agendar o serviço:\n📋 Serviço: ${newBooking.servico}\n📅 Data: ${newBooking.data}\n🕐 Horário: ${newBooking.horario}\n👤 Cliente:\nNome: ${newBooking.nome}\nTelefone: ${newBooking.telefone}\nVeículo: ${newBooking.veiculo} - ${newBooking.cor}\n💬 Observações: ${newBooking.obs}\nAguardo confirmação!`;
-
-        const encoded = encodeURIComponent(message);
-        window.open(`https://wa.me/5573988176142?text=${encoded}`, '_blank');
-        
-        setActiveModal(null);
-        resetForm();
-      }, 1500);
-      
     } catch (error) {
-      console.error("Error saving booking:", error);
-      setIsLoading(false);
-      setToast({ message: 'Erro ao salvar. Tente novamente ou chame no WhatsApp.', type: 'error' });
+      console.error("Error saving booking to database:", error);
+      // We continue to WhatsApp redirect even if DB save fails
+      // so the user can still complete their booking.
     }
+
+    // 2. Redirect to WhatsApp
+    setIsLoading(false);
+    setToast({ message: 'Agendamento registrado! Redirecionando para o WhatsApp...', type: 'success' });
+    
+    const message = `Olá, EXTREME STÉTICA! 🚗\nGostaria de agendar o serviço:\n📋 Serviço: ${newBooking.servico}\n📅 Data: ${newBooking.data}\n🕐 Horário: ${newBooking.horario}\n👤 Cliente:\nNome: ${newBooking.nome}\nTelefone: ${newBooking.telefone}\nVeículo: ${newBooking.veiculo} - ${newBooking.cor}\n💬 Observações: ${newBooking.obs}\nAguardo confirmação!`;
+
+    const encoded = encodeURIComponent(message);
+    
+    // Use window.location.href to avoid popup blockers, especially on mobile
+    window.location.href = `https://wa.me/5573988176142?text=${encoded}`;
+    
+    setActiveModal(null);
+    resetForm();
   };
 
   const resetForm = () => {
@@ -589,7 +642,7 @@ function MainLanding() {
                   </div>
                   <div>
                     <h4 className="font-bold text-white uppercase tracking-wider text-sm mb-1">Funcionamento</h4>
-                    <p className="text-xs text-gray-500 font-medium">Seg - Sex: 08h às 18h • Sáb: 08h às 12h</p>
+                    <p className="text-xs text-gray-500 font-medium">Seg - Sex: 08h às 18h • Sáb: 08h às 14h</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -663,7 +716,10 @@ function MainLanding() {
                     type="date" 
                     min={format(new Date(), 'yyyy-MM-dd')}
                     value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
+                    onChange={(e) => {
+                      setFormDate(e.target.value);
+                      setFormTime('');
+                    }}
                     className="w-full bg-dark/50 border border-white/5 p-5 rounded-2xl focus:ring-2 focus:ring-accent transition-all font-bold text-white outline-none shadow-inner"
                     required
                   />
@@ -675,6 +731,11 @@ function MainLanding() {
                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                        Não funcionamos aos Domingos
                      </div>
+                  ) : getAvailableHours(formDate).length === 0 ? (
+                     <div className="w-full bg-yellow-500/10 border border-yellow-500/20 p-5 rounded-2xl text-yellow-500 font-bold text-sm flex items-center gap-3">
+                       <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                       Não há mais horários para hoje
+                     </div>
                   ) : (
                     <select 
                       value={formTime}
@@ -683,7 +744,7 @@ function MainLanding() {
                       required
                     >
                       <option value="">Selecione...</option>
-                      {(isSaturday(parseDate(formDate)) ? WORKING_HOURS.saturday : WORKING_HOURS.weekday).map(h => (
+                      {getAvailableHours(formDate).map(h => (
                         <option key={h} value={h}>{h}</option>
                       ))}
                     </select>

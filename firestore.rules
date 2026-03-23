@@ -19,6 +19,14 @@ service cloud.firestore {
       allow write: if true; 
     }
 
+    // Regra para Agendamentos (Bookings)
+    // Qualquer um pode criar (para o formulário do site)
+    // Apenas Admin autenticado pode ler, atualizar ou deletar
+    match /bookings/{document=**} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
     // Regra para Financeiro e outros dados sensíveis
     // Apenas Admin autenticado pode ler e escrever
     match /financials/{document=**} {
